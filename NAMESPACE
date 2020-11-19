@@ -1,0 +1,4 @@
+export("CLogitTree")
+S3method(plot, CLogitTree)
+
+importFrom(Epi,clogistic)
