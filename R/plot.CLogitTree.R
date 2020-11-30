@@ -1,6 +1,6 @@
-plot.CLogitTree <- function(x, 
-                            ellipse_a=0.8, 
-                            ellipse_b=0.2, 
+plot.CLogitTree <- function(x,
+                            ellipse_a=0.8,
+                            ellipse_b=0.2,
                             ellipse_x=0,
                             ellipse_y=0.2,
                             branch_adj=0,
@@ -8,25 +8,23 @@ plot.CLogitTree <- function(x,
                             cex.branches=1,
                             cex.coefs=1,
                             cex.main=1,
-                            cex.numbers=1, 
+                            cex.numbers=1,
                             draw_numbers=FALSE,
                             title=NULL){
-  
+
   if(is.null(x$splits)){
     cat("There is no plot available")
   } else{
-    
-    X        <- x$Z 
+
+    X        <- x$Z
     info     <- x$splits
-    
+
     if(nrow(info)==0){
       cat("There is no tree to plot.\n")
     } else{
-      
+
       coefs_hat <- x$gamma_hat
-      
-      require("plotrix")
-      
+
       endnodes      <- list()
       endnodes[[1]] <- 1
       for(j in 1:nrow(info)){
@@ -39,40 +37,40 @@ plot.CLogitTree <- function(x,
       }
       endnodes <- endnodes[[length(endnodes)]]
       dir      <- sapply(1:length(endnodes), function(j){ifelse(endnodes[j] %in% info[,7], "l","r")})
-      
+
       n_levels <- length(unique(info[,"level"]))
-      
+
       hilfspunkte <- list()
       hilfspunkte[[1]] <- matrix(NA,nrow=2^n_levels,ncol=2)
       hilfspunkte[[1]][,1] <- 2^n_levels
       hilfspunkte[[1]][,2] <- rep(n_levels+1,2^n_levels)
-      
+
       steps <- 2^((n_levels:1-1))
-      
+
       for(i in 1:n_levels){
-        
+
         hilfspunkte[[i+1]] <- hilfspunkte[[i]]
         hilfspunkte[[i+1]][,2] <- rep(n_levels+1-i,2^n_levels)
-        
+
         help  <- c(-steps[i],steps[i])
         help1 <- rep(help,each=steps[i])
-        help2 <- rep(help1,length=2^n_levels) 
-        hilfspunkte[[i+1]][,1] <- hilfspunkte[[i]][,1]+help2 
-        
+        help2 <- rep(help1,length=2^n_levels)
+        hilfspunkte[[i+1]][,1] <- hilfspunkte[[i]][,1]+help2
+
         which_knots <- info[info[,"level"]==i,"node"]
         help3 <- seq(1,2^n_levels)
         help4 <- split(help3,rep(1:2^(i-1),each=2^n_levels/2^(i-1)))
         help5 <- unlist(lapply(which_knots, function(j) help4[[j]]))
         hilfspunkte[[i+1]][-help5,] <- hilfspunkte[[i]][-help5,]
-        
+
       }
-      
-      
+
+
       plot.new()
       plot.window(ylim=c(0.5,n_levels+1),xlim=c(0,2^(n_levels+1)))
       # rect(0,0.5,2^(n_levels+1),n_levels+1, border = grey(0.9),col = grey(0.9))
-      
-      
+
+
       for(j in length(hilfspunkte):2){
         for(i in 1:(2^n_levels)){
           lines(c(hilfspunkte[[j-1]][i,1],hilfspunkte[[j]][i,1]),c(hilfspunkte[[j-1]][i,2],hilfspunkte[[j]][i,2]),
@@ -83,7 +81,7 @@ plot.CLogitTree <- function(x,
         title <- "f(Z)"
       }
       title(title,cex.main=cex.main)
-      
+
       # Fuege Schaetzer in den Knoten hinzu
       betas_hat <- format(round(coefs_hat,3),nsmall=3)
       points_betas <- unique(hilfspunkte[[n_levels+1]])
@@ -96,8 +94,8 @@ plot.CLogitTree <- function(x,
         draw.ellipse(x=points_betas[i,1]+fac*ellipse_x,y=points_betas[i,2]-ellipse_y,a=ellipse_a,b=ellipse_b,lwd=cex.lines,col=grey(0.8))
         text(points_betas[i,1]+fac*ellipse_x,points_betas[i,2]-ellipse_y,betas_hat[i],cex=cex.coefs)
       }
-      
-      # Fuege Knotennummern hinzu 
+
+      # Fuege Knotennummern hinzu
       if(draw_numbers){
         for(i in 1:length(betas_hat)){
           if(dir[i]=="l"){
@@ -109,8 +107,8 @@ plot.CLogitTree <- function(x,
           text(points_betas[i,1]+fac*ellipse_x,points_betas[i,2]+ellipse_b,endnodes[i],cex=cex.numbers)
         }
       }
-      
-      # Fuege weitere Beschriftung hinzu 
+
+      # Fuege weitere Beschriftung hinzu
       for(i in 1:nrow(info)){
         help4 <- split(help3,rep(1:2^(info[i,"level"]-1),each=2^n_levels/2^(info[i,"level"]-1)))[[info[i,"node"]]]
         point_var <- unique(hilfspunkte[[info[i,"level"]]][help4,])
