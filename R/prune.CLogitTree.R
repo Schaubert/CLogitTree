@@ -2,14 +2,14 @@ prune.CLogitTree <- function(x,
                              alpha){
 
   alpha_adj <- alpha/ncol(x$Z)
-  iter      <- which.min(x$pvalue>alpha_adj)
+  iter      <- min(which(x$pvalue>alpha_adj))
 
   model  <- x$model[[iter]]
   params <- x$param[[iter]]
   design <- x$design[[iter]]
-  pvalue <- x$pvalue[[iter]]
-  dev    <- x$devs[[iter]]
-  crit   <- x$crits[[iter]]
+  pvalue <- x$pvalue[1:iter]
+  dev    <- x$dev[1:iter]
+  crit   <- x$crit[1:iter]
 
   beta_hat <- coefficients(model)[1]
 
