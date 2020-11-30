@@ -1,4 +1,7 @@
 export("CLogitTree")
+
 S3method(plot, CLogitTree)
+S3method(prune, CLogitTree)
 
 importFrom(Epi,clogistic)
+importFrom(plotrix,draw.ellipse)

@@ -6,7 +6,8 @@ CLogitTree <- function(y,
                        s,
                        alpha,
                        nperm,
-                       trace=TRUE){
+                       trace=TRUE,
+                       fit=TRUE){
 # browser()
   Z    <- X[,!names(X)%in%c(exposure,s)]
   n    <- length(y)
@@ -48,6 +49,7 @@ CLogitTree <- function(y,
   splits_evtl   <- list()
   which_obs     <- list()
   numbers       <- list()
+  design        <- list()
   count         <- 1
 
   params[[1]]      <- "int"
@@ -56,7 +58,7 @@ CLogitTree <- function(y,
   splits_evtl[[1]] <- lapply(1:nvar, function(var) matrix(1:n_s[var],nrow=1))
   numbers[[1]]     <- 1
 
-  dat0   <- data.frame("y"=y,"int"=rep(1,n),X)
+  dat0   <- design[[1]] <- data.frame("y"=y,"int"=rep(1,n),X)
   form0  <- formula(paste0("y~",exposure))
   mod0   <- mod_potential[[1]] <- clogistic(form0, strata = dat0[,s], data = dat0)
 
@@ -119,6 +121,7 @@ CLogitTree <- function(y,
 
       # fit new model
       mod0  <- mod_potential[[count+1]] <- one_model(variable,exposure,s,knoten,count,split,design_lower,design_upper,params,dat0)
+      dat0  <- design[[count+1]] <- data.frame(dat0,design_lower[[variable]][,split,drop=FALSE],design_upper[[variable]][,split,drop=FALSE])
 
       # adjust knoten
       if(level>1){
@@ -218,16 +221,27 @@ CLogitTree <- function(y,
 
   splits$variable  <- names(Z)[splits$variable]
 
-  to_return <- (list("model"=mod_opt,
-                     "beta_hat"=beta_hat,
-                     "gamma_hat"=gamma_hat,
-                     "splits"=splits,
-                     "pvalues"=pvalues,
-                     "devs"=devs,
-                     "crits"=crits,
-                     "Z"=Z,
-                     "y"=y,
-                     "call"=match.call()))
+  if(fit){
+    to_return <-  list("beta_hat"=beta_hat,
+                       "gamma_hat"=gamma_hat,
+                       "splits"=splits,
+                       "Z"=Z,
+                       "y"=y,
+                       "model"=mod_potential,
+                       "design"=design,
+                       "param"=params,
+                       "pvalue"=pvalues,
+                       "dev"=devs,
+                       "crit"=crits,
+                       "call"=match.call())
+  }else{
+    to_return <- list("beta_hat"=beta_hat,
+                      "gamma_hat"=gamma_hat,
+                      "splits"=splits,
+                      "Z"=Z,
+                      "y"=y,
+                      "call"=match.call())
+  }
 
   class(to_return) <- "CLogitTree"
   return(to_return)

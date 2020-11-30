@@ -1,8 +1,8 @@
-# adjust node 
+# adjust node
 lu <- function(last=last, cd=cd, d=d, erg){
-  
+
   s <- c("l","u")
-  
+
   for(i in 1:length(s)){
     s_new <- paste0(last,s[i])
     if(cd==d){
@@ -27,13 +27,13 @@ mod_factors <- function(y, x){
   }
   sig <- sig/(length(y)-1)
   v <- eigen(sig)$vectors[,1]
-  sa <- apply(ptabc, 1, function(x) v%*%x) 
+  sa <- apply(ptabc, 1, function(x) v%*%x)
   xnew <- as.numeric(x)
   xnew <- sapply(1:length(xnew), function(j) which(order(sa)==xnew[j]))
   return(xnew)
 }
 
-# compute ordered values 
+# compute ordered values
 ord_values <- function(x){
   if(!all((x - round(x)) == 0) || length(unique(x))>50){
     ret <- quantile(x,seq(0.05,1,by=0.05))
@@ -49,7 +49,7 @@ thresh <- function(ordered_values){
 }
 
 
-# functions to build design 
+# functions to build design
 design_one  <- function(x,threshold,upper){
   if(upper){
     ret <- ifelse(x > threshold,1,0)
@@ -69,16 +69,16 @@ designlist <- function(X,vars,label,thresholds,var_names,upper=TRUE){
     ret <- design(X[,j],thresholds[[j]],upper)
     colnames(ret) <- paste0("s",which(var_names==j),1:length(thresholds[[j]]),ifelse(upper,"_u","_l"),label)
     return(ret)})
-  names(ret) <- vars 
+  names(ret) <- vars
   return(ret)
 }
 
 designlists <- function(DM_kov,nvar,n_s,n_levels,ordered_values){
-  
-  # generate design matrices for tree 
-  v <- lapply(1:nvar,function(j) 1:(n_levels[j]-1)) 
+
+  # generate design matrices for tree
+  v <- lapply(1:nvar,function(j) 1:(n_levels[j]-1))
   w <- lapply(1:nvar, function(j) rep(paste0("s",j),n_s[j]))
-  
+
   design_upper <- lapply(1:nvar, function(j){
     design_matrix <- sapply(1:(n_levels[j]-1),function(k) { ifelse(DM_kov[,j] > ordered_values[[j]][k],1,0)})
     colnames(design_matrix) <- paste0(w[[j]],v[[j]],"_u")
@@ -93,8 +93,8 @@ designlists <- function(DM_kov,nvar,n_s,n_levels,ordered_values){
 }
 
 one_model <- function(var,exposure,s,kn,count,j,design_lower,design_upper,params,dat0){
-  
-  dat   <- data.frame(dat0,do.call(cbind,design_lower),do.call(cbind,design_upper))
+
+  dat   <- data.frame(dat0,design_lower[[var]][,j,drop=FALSE],design_upper[[var]][,j,drop=FALSE])
 
   help1 <- params[[count]]
   help2 <- help1[-kn]
@@ -106,11 +106,11 @@ one_model <- function(var,exposure,s,kn,count,j,design_lower,design_upper,params
 }
 
 allmodels <- function(var,exposure,s,kn,count,design_lower,design_upper,splits_evtl,params,dat0,mod0,n_s){
-  
+
   deviances <- rep(0,n_s[var])
   splits_aktuell <- splits_evtl[[count]][[var]][kn,]
   splits_aktuell <- splits_aktuell[!is.na(splits_aktuell)]
-  
+
   if(length(splits_aktuell)>0){
     for(j in splits_aktuell){
       mod <- one_model(var,exposure,s,kn,count,j,design_lower,design_upper,params,dat0)
@@ -122,17 +122,17 @@ allmodels <- function(var,exposure,s,kn,count,design_lower,design_upper,splits_e
 
 one_permutation <- function(var,exposure,s,kn,count,nvar,n_levels,ordered_values,
                             DM_kov,which_obs,splits_evtl,params,dat0,mod0,n_s){
-  
+
   obs_aktuell <- which_obs[[count]][kn,]
   obs_aktuell <- obs_aktuell[!is.na(obs_aktuell)]
   DM_kov_perm <- DM_kov
   DM_kov_perm[obs_aktuell,var] <- sample(DM_kov_perm[obs_aktuell,var],length(obs_aktuell))
-  
+
   design_upper_perm      <- designlists(DM_kov_perm,nvar,n_s,n_levels,ordered_values)[[1]]
   design_lower_perm      <- designlists(DM_kov_perm,nvar,n_s,n_levels,ordered_values)[[2]]
-  
+
   dv_perm <- allmodels(var,exposure,s,kn,count,design_lower_perm,design_upper_perm,splits_evtl,params,dat0,mod0,n_s)
-  
+
   return(max(dv_perm))
-  
+
 }
