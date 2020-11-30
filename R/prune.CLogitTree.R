@@ -1,3 +1,7 @@
+prune <- function (x, ...) {
+  UseMethod("prune", x)
+}
+
 prune.CLogitTree <- function(x,
                              alpha){
 

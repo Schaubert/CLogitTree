@@ -6,6 +6,8 @@ CLogitTree <- function(y,
                        s,
                        alpha,
                        nperm,
+                       minnodesize=5,
+                       perm_test=TRUE,
                        trace=TRUE,
                        fit=TRUE){
 # browser()
@@ -98,24 +100,31 @@ CLogitTree <- function(y,
 
 
     # compute permutation test
-    dev <- rep(NA,nperm)
+    if(perm_test){
+      dev <- rep(NA,nperm)
 
-    for(perm in 1:nperm){
-      dev[perm] <- one_permutation(variable,exposure,s,knoten,count,nvar,n_levels,ordered_values,
-                                   Z,which_obs,splits_evtl,params,dat0,mod0,n_s)
-      if(trace){
-        cat(".")
+      for(perm in 1:nperm){
+        dev[perm] <- one_permutation(variable,exposure,s,knoten,count,nvar,n_levels,ordered_values,
+                                     Z,which_obs,splits_evtl,params,dat0,mod0,n_s)
+        if(trace){
+          cat(".")
+        }
       }
-    }
 
-    # test decision
-    adaption <- vars_evtl[[count]][knoten]
-    crit_val <- quantile(dev,1-(alpha/adaption))
-    Tj       <- max(dv[[variable]])
-    proof    <- Tj > crit_val
-    devs[count]    <- Tj
-    crits[count]    <- crit_val
-    pvalues[count] <- sum(dev>Tj)/nperm
+      # test decision
+      adaption <- vars_evtl[[count]][knoten]
+      crit_val <- quantile(dev,1-(alpha/adaption))
+      Tj       <- max(dv[[variable]])
+      proof    <- Tj > crit_val
+      devs[count]    <- Tj
+      crits[count]    <- crit_val
+      pvalues[count] <- sum(dev>Tj)/nperm
+    } else{
+      proof <- TRUE
+      devs  <- NULL
+      crits <- NULL
+      pvalues <- NULL
+    }
 
     if(proof){
 
@@ -157,8 +166,22 @@ CLogitTree <- function(y,
       splits_evtl[[count+1]][[variable]][knoten,splits_evtl[[count+1]][[variable]][knoten,]>=split] <- NA
       splits_evtl[[count+1]][[variable]][(knoten+1),splits_evtl[[count+1]][[variable]][(knoten+1),]<=split] <- NA
 
-      # any split?
-      anysplit <- !all(is.na(unlist(splits_evtl[[count+1]])))
+      # passe which_obs an
+      which_obs[[count+1]]                               <- which_obs[[count]]
+      which_obs[[count+1]]                       <- matrix(0,nrow=n_knots,ncol=n)
+      which_obs[[count+1]][c(knoten,knoten+1),]  <- matrix(rep(which_obs[[count]][knoten,],2),nrow=2,byrow=T)
+      which_obs[[count+1]][-c(knoten,knoten+1),] <- which_obs[[count]][-knoten,]
+      threshh <- ordered_values[[variable]][1:n_s[variable]][split]
+      which_obs[[count+1]][knoten,Z[,variable]>threshh] <- NA
+      which_obs[[count+1]][(knoten+1),Z[,variable]<=threshh] <- NA
+
+      # minimal node size constraint
+      if(length(which(!is.na(which_obs[[count+1]][knoten,])))<minnodesize){
+        for(var in 1:nvar){splits_evtl[[count+1]][[var]][knoten,] <- rep(NA, n_s[var])}
+      }
+      if(length(which(!is.na(which_obs[[count+1]][knoten+1,])))<minnodesize){
+        for(var in 1:nvar){splits_evtl[[count+1]][[var]][knoten+1,] <- rep(NA, n_s[var])}
+      }
 
       # passe vars_evtl an
       vars_evtl[[count+1]]                             <- vars_evtl[[count]]
@@ -173,14 +196,8 @@ CLogitTree <- function(y,
         vars_evtl[[count+1]][knoten+1] <- vars_evtl[[count+1]][knoten+1]-1
       }
 
-      # passe which_obs an
-      which_obs[[count+1]]                               <- which_obs[[count]]
-      which_obs[[count+1]]                       <- matrix(0,nrow=n_knots,ncol=n)
-      which_obs[[count+1]][c(knoten,knoten+1),]  <- matrix(rep(which_obs[[count]][knoten,],2),nrow=2,byrow=T)
-      which_obs[[count+1]][-c(knoten,knoten+1),] <- which_obs[[count]][-knoten,]
-      threshh <- ordered_values[[variable]][1:n_s[variable]][split]
-      which_obs[[count+1]][knoten,Z[,variable]>threshh] <- NA
-      which_obs[[count+1]][(knoten+1),Z[,variable]<=threshh] <- NA
+      # any split?
+      anysplit <- !all(is.na(unlist(splits_evtl[[count+1]])))
 
       # passe numbers an
       numbers[[count+1]]                                  <- numbers[[count]]
