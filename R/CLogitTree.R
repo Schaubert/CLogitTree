@@ -2,7 +2,7 @@
 
 CLogitTree <- function(y,
                        X,
-                       exposure,
+                       exposure=NULL,
                        s,
                        alpha,
                        nperm,
@@ -61,8 +61,12 @@ CLogitTree <- function(y,
   numbers[[1]]     <- 1
 
   dat0   <- design[[1]] <- data.frame("y"=y,"int"=rep(1,n),X)
-  form0  <- formula(paste0("y~",exposure))
-  mod0   <- mod_potential[[1]] <- clogistic(form0, strata = dat0[,s], data = dat0)
+  if(!is.null(exposure)){
+    form0  <- formula(paste0("y~",exposure))
+    mod0   <- mod_potential[[1]] <- clogistic(form0, strata = dat0[,s], data = dat0)
+  } else{
+    mod0   <- mod_potential[[1]] <- NULL
+  }
 
   design_lower <- designlists(Z,nvar,n_s,n_levels,ordered_values)[[1]]
   design_upper <- designlists(Z,nvar,n_s,n_levels,ordered_values)[[2]]
@@ -226,10 +230,18 @@ CLogitTree <- function(y,
   mod_opt     <- mod_potential[[count]]
   params_opt  <- params[[count]]
 
-  beta_hat <- coefficients(mod_opt)[1]
+  if(!is.null(exposure)){
+    beta_hat <- coefficients(mod_opt)[1]
+  } else{
+    beta_hat <- NULL
+  }
 
   if(count>1){
-    gamma_hat <- coefficients(mod_opt)[-1]
+    if(!is.null(exposure)){
+      gamma_hat <- coefficients(mod_opt)[-1]
+    } else{
+      gamma_hat <- coefficients(mod_opt)
+    }
     gamma_hat[is.na(gamma_hat)] <- 0
     gamma_hat <- gamma_hat[params_opt]
   } else{

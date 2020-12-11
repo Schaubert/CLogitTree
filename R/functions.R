@@ -113,8 +113,14 @@ allmodels <- function(var,exposure,s,kn,count,design_lower,design_upper,splits_e
 
   if(length(splits_aktuell)>0){
     for(j in splits_aktuell){
-      mod <- one_model(var,exposure,s,kn,count,j,design_lower,design_upper,params,dat0)
-      deviances[j] <- (-2)*mod0$loglik[2] - (-2)*mod$loglik[2]
+      mod <- try(one_model(var,exposure,s,kn,count,j,design_lower,design_upper,params,dat0), silent=T)
+      if(!class(mod)=="try-error"){
+        if(is.null(mod0)){
+          deviances[j] <- (-2)*mod$loglik[1] - (-2)*mod$loglik[2]
+        } else{
+          deviances[j] <- (-2)*mod0$loglik[2] - (-2)*mod$loglik[2]
+        }
+      }
     }
   }
   return(deviances)
@@ -136,3 +142,5 @@ one_permutation <- function(var,exposure,s,kn,count,nvar,n_levels,ordered_values
   return(max(dv_perm))
 
 }
+
+
