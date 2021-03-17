@@ -1,8 +1,16 @@
 prune.CLogitTree <- function(x,
                              alpha){
 
+
   alpha_adj <- alpha/ncol(x$Z)
-  iter      <- min(which(x$pvalue>alpha_adj))
+
+
+  if(!any(x$pvalue>alpha_adj)){
+    iter <- length(x$pvalue)
+  }else{
+    iter <- min(which(x$pvalue>alpha_adj))
+  }
+
 
   model  <- x$model[[iter]]
   params <- x$param[[iter]]

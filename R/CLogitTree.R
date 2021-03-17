@@ -244,12 +244,17 @@ CLogitTree <- function(y,
                        "splits"=splits,
                        "Z"=Z,
                        "y"=y,
+                       "strata" = dat0[,s],
+                       "exposure" = dat0[,exposure],
                        "model"=mod_potential,
                        "design"=design,
                        "param"=params,
                        "pvalue"=pvalues,
                        "dev"=devs,
                        "crit"=crits,
+                       "minnodesize" = minnodesize,
+                       "trace" = trace,
+                       "nperm" = nperm,
                        "call"=match.call())
   }else{
     to_return <- list("beta_hat"=beta_hat,
@@ -257,6 +262,9 @@ CLogitTree <- function(y,
                       "splits"=splits,
                       "Z"=Z,
                       "y"=y,
+                      "minnodesize" = minnodesize,
+                      "trace" = trace,
+                      "nperm" = nperm,
                       "call"=match.call())
   }
 
