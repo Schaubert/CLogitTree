@@ -8,6 +8,7 @@ CLogitTree <- function(y,
                        nperm,
                        minnodesize=5,
                        perm_test=TRUE,
+                       mtry=NULL,
                        trace=TRUE,
                        fit=TRUE){
 # browser()
@@ -56,7 +57,7 @@ CLogitTree <- function(y,
 
   params[[1]]      <- "int"
   which_obs[[1]]   <- matrix(1:n,nrow=1)
-  vars_evtl[[1]]   <- nvar
+  vars_evtl[[1]]   <- matrix(1:nvar,nrow=1)
   splits_evtl[[1]] <- lapply(1:nvar, function(var) matrix(1:n_s[var],nrow=1))
   numbers[[1]]     <- 1
 
@@ -75,12 +76,21 @@ CLogitTree <- function(y,
 
   while(sig & anysplit){
 
+    n_knots <- length(params[[count]])
+    if(!is.null(mtry)){
+      tryvars <- sapply(1:n_knots, function(kn) sample(1:nvar, mtry))
+    } else{
+      tryvars <- sapply(1:n_knots, function(kn) 1:nvar)
+    }
+
     # estimate all models
     dv <- lapply(1:nvar,function(var){
-              n_knots   <- length(params[[count]])
               deviances <- matrix(rep(0,n_s[var]*n_knots),ncol=n_knots)
-              for(kn in 1:n_knots){
-                deviances[,kn] <- allmodels(var,exposure,s,kn,count,design_lower,design_upper,splits_evtl,params,dat0,mod0,n_s)
+              which_knots <- which(!is.na(vars_evtl[[count]][,var]))
+              for(kn in which_knots){
+                if(var %in% tryvars[,kn]){
+                  deviances[,kn] <- allmodels(var,exposure,s,kn,count,design_lower,design_upper,splits_evtl,params,dat0,mod0,n_s)
+                }
               }
               return(deviances)
           })
@@ -116,7 +126,7 @@ CLogitTree <- function(y,
       }
 
       # test decision
-      adaption <- vars_evtl[[count]][knoten]
+      adaption <- sum(!is.na(vars_evtl[[count]][knoten,]))
       crit_val <- quantile(dev,1-(alpha/adaption))
       Tj       <- max(dv[[variable]])
       proof    <- Tj > crit_val
@@ -188,17 +198,13 @@ CLogitTree <- function(y,
       }
 
       # passe vars_evtl an
-      vars_evtl[[count+1]]                             <- vars_evtl[[count]]
-      vars_evtl[[count+1]]                     <- rep(0,n_knots)
-      vars_evtl[[count+1]][c(knoten,knoten+1)] <- rep(vars_evtl[[count]][knoten],2)
-      vars_evtl[[count+1]][-c(knoten,knoten+1)]<- vars_evtl[[count]][-knoten]
+      vars_evtl[[count+1]]                     <- vars_evtl[[count]]
+      vars_evtl[[count+1]]                     <- matrix(0,nrow=n_knots,ncol=nvar)
+      vars_evtl[[count+1]][c(knoten,knoten+1),]  <- matrix(rep(vars_evtl[[count]][knoten,],2),nrow=2,byrow=T)
+      vars_evtl[[count+1]][-c(knoten,knoten+1),] <- vars_evtl[[count]][-knoten,]
 
-      if(length(which(!is.na(splits_evtl[[count+1]][[variable]][knoten,])))==0){
-        vars_evtl[[count+1]][knoten] <- vars_evtl[[count+1]][knoten]-1
-      }
-      if(length(which(!is.na(splits_evtl[[count+1]][[variable]][knoten+1,])))==0){
-        vars_evtl[[count+1]][knoten+1] <- vars_evtl[[count+1]][knoten+1]-1
-      }
+      vars_evtl[[count+1]][knoten,sapply(1:nvar, function(var) all(is.na(unlist(splits_evtl[[count+1]][[var]][knoten,]))))] <- NA
+      vars_evtl[[count+1]][knoten+1,sapply(1:nvar, function(var) all(is.na(unlist(splits_evtl[[count+1]][[var]][knoten+1,]))))] <- NA
 
       # any split?
       anysplit <- !all(is.na(unlist(splits_evtl[[count+1]])))
