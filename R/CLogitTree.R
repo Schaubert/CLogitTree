@@ -9,6 +9,7 @@ CLogitTree <- function(y,
                        minnodesize=5,
                        perm_test=TRUE,
                        mtry=NULL,
+                       lambda=0,
                        trace=TRUE,
                        fit=TRUE){
 # browser()
@@ -48,6 +49,7 @@ CLogitTree <- function(y,
                               "right"=numeric(),stringsAsFactors=FALSE)
 
   params        <- list()
+  params_fit    <- list()
   vars_evtl     <- list()
   splits_evtl   <- list()
   which_obs     <- list()
@@ -64,9 +66,14 @@ CLogitTree <- function(y,
   dat0   <- design[[1]] <- data.frame("y"=y,"int"=rep(1,n),X)
   if(!is.null(exposure)){
     form0  <- formula(paste0("y~",exposure))
-    mod0   <- mod_potential[[1]] <- clogistic(form0, strata = dat0[,s], data = dat0)
+    mod0   <- clogistic(form0, strata = dat0[,s], data = dat0)
+    mm <- model.matrix(mod0, data=dat0)
+    mod_potential[[1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,2, drop=FALSE], unpenalized=NULL,
+                                        lambda=0, alpha=10e-20)
+    params_fit[[1]] <- names(coefficients(mod0))
   } else{
     mod0   <- mod_potential[[1]] <- NULL
+    params_fit[[1]] <- NULL
   }
 
   design_lower <- designlists(Z,nvar,n_s,n_levels,ordered_values)[[1]]
@@ -143,8 +150,19 @@ CLogitTree <- function(y,
     if(proof){
 
       # fit new model
-      mod0  <- mod_potential[[count+1]] <- one_model(variable,exposure,s,knoten,count,split,design_lower,design_upper,params,dat0)
+      mod0  <- one_model(variable,exposure,s,knoten,count,split,design_lower,design_upper,params,dat0)
       dat0  <- design[[count+1]] <- data.frame(dat0,design_lower[[variable]][,split,drop=FALSE],design_upper[[variable]][,split,drop=FALSE])
+      params_fit[[count+1]] <- names(coefficients(mod0))
+
+      # fit final model with penalizedclr
+      mm <- model.matrix(mod0, data=dat0)
+      if(!is.null(exposure)){
+        mod_potential[[count+1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,-c(1,2,ncol(mm))], unpenalized=mm[,2],
+                                                  lambda=lambda, alpha=10e-20)
+      } else{
+        mod_potential[[count+1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,-c(1,ncol(mm))], unpenalized=NULL,
+                                                  lambda=lambda, alpha=10e-20)
+      }
 
       # adjust knoten
       if(level>1){
@@ -233,26 +251,33 @@ CLogitTree <- function(y,
   }
 
   ###################################################################################
-  mod_opt     <- mod_potential[[count]]
-  params_opt  <- params[[count]]
+  mod_opt         <- mod_potential[[count]]
+  params_opt      <- params[[count]]
+  params_opt_fit  <- params_fit[[count]]
 
-  if(!is.null(exposure)){
-    beta_hat <- coefficients(mod_opt)[1]
-  } else{
-    beta_hat <- NULL
+  if(count==1){
+    if(!is.null(exposure)){
+      beta_hat <- unlist(mod_opt$penalized)
+    } else{
+      beta_hat <- NULL
+    }
+    gamma_hat <- NULL
   }
 
   if(count>1){
     if(!is.null(exposure)){
-      gamma_hat <- coefficients(mod_opt)[-1]
+      gamma_hat <- c(unlist(mod_opt$penalized),0)
+      beta_hat  <- unlist(mod_opt$unpenalized)
+      names(gamma_hat) <- params_opt_fit[-1]
+      names(beta_hat)  <- params_opt_fit[1]
     } else{
-      gamma_hat <- coefficients(mod_opt)
+      gamma_hat <- c(unlist(mod_opt$penalized),0)
+      beta_hat  <- NULL
+      names(gamma_hat) <- params_opt_fit
     }
-    gamma_hat[is.na(gamma_hat)] <- 0
     gamma_hat <- gamma_hat[params_opt]
-  } else{
-    gamma_hat <- NULL
   }
+
 
   splits$variable  <- names(Z)[splits$variable]
 
@@ -267,10 +292,12 @@ CLogitTree <- function(y,
                        "model"=mod_potential,
                        "design"=design,
                        "param"=params,
+                       "param_fit"=params_fit,
                        "pvalue"=pvalues,
                        "dev"=devs,
                        "crit"=crits,
                        "minnodesize" = minnodesize,
+                       "lambda" = lambda,
                        "trace" = trace,
                        "nperm" = nperm,
                        "call"=match.call())
@@ -281,6 +308,7 @@ CLogitTree <- function(y,
                       "Z"=Z,
                       "y"=y,
                       "minnodesize" = minnodesize,
+                      "lambda" = lambda,
                       "trace" = trace,
                       "nperm" = nperm,
                       "call"=match.call())

@@ -12,23 +12,37 @@ prune.CLogitTree <- function(x,
   }
 
 
-  model  <- x$model[[iter]]
-  params <- x$param[[iter]]
-  design <- x$design[[iter]]
-  pvalue <- x$pvalue[1:iter]
-  dev    <- x$dev[1:iter]
-  crit   <- x$crit[1:iter]
+  model      <- x$model[[iter]]
+  params     <- x$param[[iter]]
+  params_fit <- x$param_fit[[iter]]
+  design     <- x$design[[iter]]
+  pvalues    <- x$pvalue[1:iter]
+  devs       <- x$dev[1:iter]
+  crits      <- x$crit[1:iter]
 
-  beta_hat <- coefficients(model)[1]
-
-  if(iter>1){
-    gamma_hat <- coefficients(model)[-1]
-    gamma_hat[is.na(gamma_hat)] <- 0
-    gamma_hat <- gamma_hat[params]
-    splits <- x$splits[1:(iter-1),]
-  } else{
+  if(iter==1){
+    if(length(x$exposure)>0){
+      beta_hat <- unlist(model$penalized)
+    } else{
+      beta_hat <- NULL
+    }
     gamma_hat <- NULL
     splits   <- NULL
+  }
+
+  if(iter>1){
+    if(length(x$exposure)>0){
+      gamma_hat <- c(unlist(model$penalized),0)
+      beta_hat  <- unlist(model$unpenalized)
+      names(gamma_hat) <- params_fit[-1]
+      names(beta_hat)  <- params_fit[1]
+    } else{
+      gamma_hat <- c(unlist(model$penalized),0)
+      beta_hat  <- NULL
+      names(gamma_hat) <- params_fit
+    }
+    gamma_hat <- gamma_hat[params]
+    splits <- x$splits[1:(iter-1),]
   }
 
   to_return <-  list("beta_hat"=beta_hat,
@@ -39,9 +53,9 @@ prune.CLogitTree <- function(x,
                      "model"=model,
                      "design"=design,
                      "param"=params,
-                     "pvalue"=pvalue,
-                     "dev"=dev,
-                     "crit"=crit,
+                     "pvalue"=pvalues,
+                     "dev"=devs,
+                     "crit"=crits,
                      "call"=x$call)
 
   class(to_return) <- "CLogitTree"

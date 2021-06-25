@@ -8,3 +8,4 @@ S3method(cv, CLogitTree)
 
 importFrom(Epi,clogistic)
 importFrom(plotrix,draw.ellipse)
+importFrom(penalizedclr,penalized.clr)
