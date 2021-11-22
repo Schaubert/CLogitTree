@@ -1,4 +1,6 @@
 plot.CLogitTree <- function(x,
+                            symmetric = TRUE,
+                            precision = 3,
                             ellipse_a=0.8,
                             ellipse_b=0.2,
                             ellipse_x=0,
@@ -9,6 +11,8 @@ plot.CLogitTree <- function(x,
                             cex.coefs=1,
                             cex.main=1,
                             cex.numbers=1,
+                            info_inner=TRUE,
+                            info_n=TRUE,
                             draw_numbers=FALSE,
                             title=NULL){
 
@@ -23,7 +27,12 @@ plot.CLogitTree <- function(x,
       cat("There is no tree to plot.\n")
     } else{
 
-      coefs_hat <- x$gamma_hat
+
+      if(symmetric){
+        coefs_hat <- x$gamma_hat_sym
+      }else{
+        coefs_hat <- x$gamma_hat
+      }
 
       endnodes      <- list()
       endnodes[[1]] <- 1
@@ -83,7 +92,8 @@ plot.CLogitTree <- function(x,
       title(title,cex.main=cex.main)
 
       # Fuege Schaetzer in den Knoten hinzu
-      betas_hat <- format(round(coefs_hat,3),nsmall=3)
+      betas_hat <- format(round(coefs_hat, precision),nsmall=precision)
+      y_tab     <- x$y_tab[[length(x$y_tab)]]
       points_betas <- unique(hilfspunkte[[n_levels+1]])
       for(i in 1:length(betas_hat)){
         if(dir[i]=="l"){
@@ -92,7 +102,12 @@ plot.CLogitTree <- function(x,
           fac <- 1
         }
         draw.ellipse(x=points_betas[i,1]+fac*ellipse_x,y=points_betas[i,2]-ellipse_y,a=ellipse_a,b=ellipse_b,lwd=cex.lines,col=grey(0.8))
-        text(points_betas[i,1]+fac*ellipse_x,points_betas[i,2]-ellipse_y,betas_hat[i],cex=cex.coefs)
+        if(info_n){
+          text(points_betas[i,1]+fac*ellipse_x,points_betas[i,2]-ellipse_y,
+               bquote(atop(.(betas_hat[i]), n[0]*"="*.(y_tab[i,1])~~n[1]*"="*.(y_tab[i,2]))),cex=cex.coefs)
+        } else{
+          text(points_betas[i,1]+fac*ellipse_x,points_betas[i,2]-ellipse_y,betas_hat[i],cex=cex.coefs)
+        }
       }
 
       # Fuege Knotennummern hinzu
@@ -113,6 +128,15 @@ plot.CLogitTree <- function(x,
         help4 <- split(help3,rep(1:2^(info[i,"level"]-1),each=2^n_levels/2^(info[i,"level"]-1)))[[info[i,"node"]]]
         point_var <- unique(hilfspunkte[[info[i,"level"]]][help4,])
         points(point_var[1],point_var[2],cex=cex.lines-1,pch=19)
+        if(info_inner){
+          if(info[i,"association"]=="-"){
+            text(point_var[1]-0.5, point_var[2], "-", cex=cex.lines)
+            text(point_var[1]+0.5, point_var[2], "+", cex=cex.lines)
+          } else{
+            text(point_var[1]-0.5, point_var[2], "+", cex=cex.lines)
+            text(point_var[1]+0.5, point_var[2], "-", cex=cex.lines)
+          }
+        }
         point_left  <- c(point_var[1]-steps[info[i,"level"]]-branch_adj,point_var[2]-0.5)
         point_right <- c(point_var[1]+steps[info[i,"level"]]+branch_adj,point_var[2]-0.5)
         var   <- info[i,"variable"]

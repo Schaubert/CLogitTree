@@ -1,7 +1,7 @@
 
 
-CLogitTree <- function(y,
-                       X,
+CLogitTree <- function(data,
+                       response,
                        exposure=NULL,
                        s,
                        alpha,
@@ -12,8 +12,9 @@ CLogitTree <- function(y,
                        lambda=0,
                        trace=TRUE,
                        fit=TRUE){
-# browser()
-  Z    <- X[,!names(X)%in%c(exposure,s)]
+
+  y <- data[, names(data) == response]
+  Z    <- data[,!names(data)%in%c(response, exposure,s)]
   n    <- length(y)
   nvar <- ncol(Z)
 
@@ -26,7 +27,11 @@ CLogitTree <- function(y,
   # modify design
   for(j in 1:nvar){
     if(is.factor(Z[,j])){
-      Z[,j] <- mod_factors(y,Z[,j])
+      if(!is.ordered(Z[,j])){
+        Z[,j] <- mod_factors(y,Z[,j])
+      } else{
+        Z[,j] <- as.integer(Z[,j])
+      }
     }
   }
 
@@ -46,24 +51,27 @@ CLogitTree <- function(y,
                               "threshold"=numeric(),
                               "number"=numeric(),
                               "left"=numeric(),
-                              "right"=numeric(),stringsAsFactors=FALSE)
+                              "right"=numeric(),
+                              "association"=numeric(),stringsAsFactors=FALSE)
 
   params        <- list()
   params_fit    <- list()
   vars_evtl     <- list()
   splits_evtl   <- list()
   which_obs     <- list()
+  y_tab         <- list()
   numbers       <- list()
   design        <- list()
   count         <- 1
 
   params[[1]]      <- "int"
   which_obs[[1]]   <- matrix(1:n,nrow=1)
+  y_tab[[1]]       <- matrix(table(y), nrow=1)
   vars_evtl[[1]]   <- matrix(1:nvar,nrow=1)
   splits_evtl[[1]] <- lapply(1:nvar, function(var) matrix(1:n_s[var],nrow=1))
   numbers[[1]]     <- 1
 
-  dat0   <- design[[1]] <- data.frame("y"=y,"int"=rep(1,n),X)
+  dat0   <- design[[1]] <- data.frame("y"=y,"int"=rep(1,n),data)
   if(!is.null(exposure)){
     form0  <- formula(paste0("y~",exposure))
     mod0   <- clogistic(form0, strata = dat0[,s], data = dat0)
@@ -164,6 +172,7 @@ CLogitTree <- function(y,
                                                   lambda=lambda, alpha=10e-20)
       }
 
+
       # adjust knoten
       if(level>1){
         help_kn4 <- lu(c(),1,level-1,c())
@@ -207,12 +216,31 @@ CLogitTree <- function(y,
       which_obs[[count+1]][knoten,Z[,variable]>threshh] <- NA
       which_obs[[count+1]][(knoten+1),Z[,variable]<=threshh] <- NA
 
+      obs_knoten  <- which(!is.na(which_obs[[count+1]][knoten,]))
+      obs_knoten1 <- which(!is.na(which_obs[[count+1]][knoten+1,]))
+
       # minimal node size constraint
-      if(length(which(!is.na(which_obs[[count+1]][knoten,])))<minnodesize){
+      if(length(obs_knoten)<minnodesize){
         for(var in 1:nvar){splits_evtl[[count+1]][[var]][knoten,] <- rep(NA, n_s[var])}
       }
-      if(length(which(!is.na(which_obs[[count+1]][knoten+1,])))<minnodesize){
+      if(length(obs_knoten1)<minnodesize){
         for(var in 1:nvar){splits_evtl[[count+1]][[var]][knoten+1,] <- rep(NA, n_s[var])}
+      }
+
+      # table of y
+      y_tab[[count+1]]  <- y_tab[[count]]
+      y_tab[[count+1]]  <- matrix(0, nrow=n_knots, ncol=2)
+      y_tab[[count+1]][knoten,] <- table(factor(y)[obs_knoten])
+      y_tab[[count+1]][knoten+1,] <- table(factor(y)[obs_knoten1])
+      y_tab[[count+1]][-c(knoten,knoten+1),] <- y_tab[[count]][-knoten,]
+
+      ratio_knoten  <- y_tab[[count+1]][knoten,2]/y_tab[[count+1]][knoten,1]
+      ratio_knoten1 <- y_tab[[count+1]][knoten+1,2]/y_tab[[count+1]][knoten+1,1]
+      OR_split <- ratio_knoten/ratio_knoten1
+      if(OR_split<1){
+        splits[count,"association"] <- "-"
+      } else{
+        splits[count,"association"] <- "+"
       }
 
       # passe vars_evtl an
@@ -249,6 +277,7 @@ CLogitTree <- function(y,
       sig <- FALSE
     }
   }
+  params_fit <- check_names_list(params_fit, params)
 
   ###################################################################################
   mod_opt         <- mod_potential[[count]]
@@ -281,12 +310,20 @@ CLogitTree <- function(y,
 
   splits$variable  <- names(Z)[splits$variable]
 
+
+  ## calculate gamma with symmetric side constraints
+
+    gamma_hat_sym <- gamma_hat - mean(gamma_hat)
+
+
   if(fit){
     to_return <-  list("beta_hat"=beta_hat,
                        "gamma_hat"=gamma_hat,
+                       "gamma_hat_sym" = gamma_hat_sym,
                        "splits"=splits,
                        "Z"=Z,
                        "y"=y,
+                       "y_tab"=y_tab,
                        "strata" = dat0[,s],
                        "exposure" = dat0[,exposure],
                        "model"=mod_potential,
@@ -300,18 +337,26 @@ CLogitTree <- function(y,
                        "lambda" = lambda,
                        "trace" = trace,
                        "nperm" = nperm,
+                       "alpha" = alpha,
+                       "perm_test" = perm_test,
+                       "mtry" = mtry,
                        "call"=match.call())
   }else{
     to_return <- list("beta_hat"=beta_hat,
                       "gamma_hat"=gamma_hat,
+                      "gamma_hat_sym" = gamma_hat_sym,
                       "splits"=splits,
                       "Z"=Z,
                       "y"=y,
+                      "y_tab"=y_tab,
                       "minnodesize" = minnodesize,
                       "lambda" = lambda,
                       "trace" = trace,
                       "nperm" = nperm,
-                      "call"=match.call())
+                      "alpha" = alpha,
+                      "perm_test" = perm_test,
+                      "mtry" = mtry,
+                      "call"= match.call())
   }
 
   class(to_return) <- "CLogitTree"

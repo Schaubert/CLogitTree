@@ -143,4 +143,30 @@ one_permutation <- function(var,exposure,s,kn,count,nvar,n_levels,ordered_values
 
 }
 
+# functions to fix names
+check_names <- function(model_names, param_names){
 
+  params_c  <- unlist(param_names)
+  names_mod <- unlist(model_names)
+  if(!all(params_c %in% names_mod)){
+    params_split <- strsplit(params_c,":")
+    names_split  <- strsplit(names_mod,":")
+    for(k in 1:length(params_split)){
+      found <- FALSE
+      kk   <- 0
+      while(!found){
+        kk <- kk+1
+        found <- all(params_split[[k]] %in% names_split[[kk]])
+      }
+      model_names[kk] <- params_c[k]
+    }
+  }
+  return(model_names)
+}
+
+check_names_list <- function(model_names_list, param_names_list){
+  for(j in 2:length(model_names_list)){
+    model_names_list[[j]] <- check_names(model_names_list[[j]],param_names_list[[j]])
+  }
+  return(model_names_list)
+}

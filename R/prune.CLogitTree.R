@@ -19,6 +19,7 @@ prune.CLogitTree <- function(x,
   pvalues    <- x$pvalue[1:iter]
   devs       <- x$dev[1:iter]
   crits      <- x$crit[1:iter]
+  y_tab      <- x$y_tab[1:iter]
 
   if(iter==1){
     if(length(x$exposure)>0){
@@ -45,11 +46,15 @@ prune.CLogitTree <- function(x,
     splits <- x$splits[1:(iter-1),]
   }
 
+  gamma_hat_sym <- gamma_hat - mean(gamma_hat)
+
   to_return <-  list("beta_hat"=beta_hat,
                      "gamma_hat"=gamma_hat,
+                     "gamma_hat_sym" = gamma_hat_sym,
                      "splits"=splits,
                      "Z"=x$Z,
                      "y"=x$y,
+                     "y_tab"=y_tab,
                      "model"=model,
                      "design"=design,
                      "param"=params,
