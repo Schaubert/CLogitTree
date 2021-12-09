@@ -1,3 +1,39 @@
+#' Plot function for CLogitTree
+#'
+#' Plots trees estimated by \code{\link{CLogitTree}}.
+#'
+#' @param x CLogitTree object
+#' @param symmetric Shall parameter estimates with symmetric side constraints be used?
+#' @param precision Number of decimals of parameter estimates
+#' @param ellipse_a Controls width of ellipse containing node information
+#' @param ellipse_b Controls height of ellipse containing node information
+#' @param ellipse_x Controls location on x-axis of ellipse containing node information
+#' @param ellipse_y Controls location on y-axis of ellipse containing node information
+#' @param branch_adj Vertical adjustment of branch labels
+#' @param cex.lines Size of lines
+#' @param cex.branches Size of branch labels
+#' @param cex.coefs Size of parameter estimates
+#' @param cex.main Size of title
+#' @param cex.numbers Size of numbers of observations
+#' @param info_inner Shall +/- signs be added to split points?
+#' @param info_n Shall numbers of observations be displayed?
+#' @param draw_numbers Shall internally used node numbers be displayed?
+#' @param title Main title
+#' @param ... further plot arguments
+#' @return No return, used for side effects
+#' @author Gunther Schauberger: \email{gunther.schauberger@@tum.de} \cr
+#' Moritz Berger: \email{moritz.berger@@imbie.uni-bonn.de}
+#' @seealso \code{\link{CLogitTree}}, \code{\link{bootci.CLogitTree}}, \code{\link{prune.CLogitTree}}
+#' @examples
+#' data(illu.small)
+#'
+#' set.seed(1860)
+#' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
+#'                         alpha = 0.05, nperm = 20, trace = FALSE)
+#'
+#' plot(illu.tree)
+#'
+#' @export
 plot.CLogitTree <- function(x,
                             symmetric = TRUE,
                             precision = 3,
@@ -14,7 +50,8 @@ plot.CLogitTree <- function(x,
                             info_inner=TRUE,
                             info_n=TRUE,
                             draw_numbers=FALSE,
-                            title=NULL){
+                            title=NULL,
+                            ...){
 
   if(is.null(x$splits)){
     cat("There is no plot available")
@@ -75,7 +112,7 @@ plot.CLogitTree <- function(x,
       }
 
 
-      plot.new()
+      plot.new(...)
       plot.window(ylim=c(0.5,n_levels+1),xlim=c(0,2^(n_levels+1)))
       # rect(0,0.5,2^(n_levels+1),n_levels+1, border = grey(0.9),col = grey(0.9))
 

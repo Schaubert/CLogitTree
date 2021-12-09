@@ -1,32 +1,39 @@
-#
-#
-# boot.CLfun <- function(data, index, model){
-#
-#   X = cbind(model$Z, model$exposure, model$strata)[index,]
-#   names(X)[(ncol(X)-1):ncol(X)] <- c("Xexpo", "Xstrata")
-#
-#   y <- model$y[index]
-#
-#   ret <- CLogitTree(y = y,
-#              X = X,
-#              exposure="Xexpo",
-#              s = "Xstrata",
-#              alpha = model$alpha,
-#              nperm = model$nperm,
-#              minnodesize=model$minnodesize,
-#              perm_test=model$perm_test,
-#              mtry=model$mtry,
-#              lambda=model$lambda,
-#              trace=model$trace,
-#              fit=TRUE)
-#
-# ret$beta_hat
-#
-# }
-
-
-
-bootci.CLogitTree <- function(model, B = 100, alpha = 0.05){
+#' Bootstrap confidence intervals for CLogitTree
+#'
+#' @param model Object to calculate bootstrap confidence intervals for
+#' @param ... Further arguments
+bootci <- function (model, ...) {
+  UseMethod("bootci", model)
+}
+#' Bootstrap confidence intervals for CLogitTree
+#'
+#' Performs estimation of bootstrap confidence intervals for separate exposure variable effects from \code{\link{CLogitTree}} objects.
+#'
+#' @param model Original CLogitTree model
+#' @param B Number of bootstrap iterations
+#' @param alpha.ci Confidence level of confidence intervals is calculated as \code{1-alpha.ci}.
+#' @param ... Further bootci arguments
+#' @return
+#' \item{beta_hat}{Estimate for separate exposure  effect}
+#' \item{ci_beta}{Estimated bootstrap confidence interval for exposure effect}
+#' @author Gunther Schauberger: \email{gunther.schauberger@@tum.de} \cr
+#' Moritz Berger: \email{moritz.berger@@imbie.uni-bonn.de}
+#' @seealso \code{\link{CLogitTree}}, \code{\link{plot.CLogitTree}}, \code{\link{prune.CLogitTree}}
+#' @examples
+#' \donttest{
+#' data(illu.small)
+#'
+#' set.seed(1860)
+#' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
+#'                         alpha = 0.05, nperm = 20, trace = FALSE)
+#'
+#' plot(illu.tree)
+#'
+#' set.seed(1860)
+#' illu.boot <- bootci(illu.tree, B = 10, alpha = 0.2)
+#' }
+#' @export
+bootci.CLogitTree <- function(model, B = 100, alpha.ci = 0.05, ...){
 
   X = cbind(model$Z, model$exposure, model$strata, model$y)
   names(X)[(ncol(X)-2):ncol(X)] <- c("Xexpo", "Xstrata","Xy")
@@ -84,7 +91,7 @@ bootci.CLogitTree <- function(model, B = 100, alpha = 0.05){
   }
 
 
-  return(list(beta_hat = beta_hat, ci_beta = quantile(beta.hat.vec, c(alpha/2, 1-alpha/2))))
+  return(list(beta_hat = beta_hat, ci_beta = quantile(beta.hat.vec, c(alpha.ci/2, 1-alpha.ci/2))))
 }
 
 

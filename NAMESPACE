@@ -1,13 +1,17 @@
 export("CLogitTree")
-export("prune")
-export("cv")
 export("bootci")
 
 S3method(plot, CLogitTree)
 S3method(prune, CLogitTree)
-S3method(cv, CLogitTree)
 S3method(bootci, CLogitTree)
 
 importFrom(Epi,clogistic)
 importFrom(plotrix,draw.ellipse)
 importFrom(penalizedclr,penalized.clr)
+importFrom(generics,prune)
+
+  importFrom("grDevices", "grey")
+  importFrom("graphics", "lines", "plot.new", "plot.window", "points",
+             "rect", "text")
+  importFrom("stats", "coefficients", "formula", "model.matrix",
+             "quantile")

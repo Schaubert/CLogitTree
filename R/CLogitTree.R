@@ -1,12 +1,66 @@
-
-
+#' Function to perform CLogitTree
+#'
+#' Performs CLogitTree, a tree-based method for the analysis of matched case-control studies. The estimation is embedded into the framework of conditional logistic regression.
+#' Splits are incorporated into the model as separate dummy variables specifying the terminal nodes. Additional methods for pruning, plotting and bootstrap are available.
+#'
+#' @param data Data frame (containing all required variable)
+#' @param response Name of response variable (character)
+#' @param exposure Name of (optional) separate exposure variable (character)
+#' @param s Name of strata variable (character)
+#' @param alpha Level of significance for internal permutation tests
+#' @param nperm Number of permutations in internal permutation tests
+#' @param minnodesize Minimal node size in order to be eligible for further splitting
+#' @param perm_test \code{TRUE} for regular use where  permutation tests are done.
+#' @param mtry Solely for internal use
+#' @param lambda Tuning parameter for L2 optional penalty
+#' @param trace Shall trace of permutation tests be printed?
+#' @param fit Shall the internally fitted models be returned (required for the use of \code{\link[ClogitTree]{prune}})?
+#'
+#' @return
+#' \item{beta_hat}{Estimate for separate exposure  effect}
+#' \item{gamma_hat}{Estimates for terminal nodes  (with reference node)}
+#' \item{gamma_hat_sym}{Estimates for terminal nodes (with symmetric side constraint)}
+#' \item{splits}{Detailed information about all executed splits during the fitting process (matrix)}
+#' \item{Z}{Design matrix of all confounding variables}
+#' \item{y}{Outcome variable}
+#' \item{y_tab}{Table of the number of cases and the number of controls in each node}
+#' \item{strata}{Strata variable}
+#' \item{exposure}{Exposure variable}
+#' \item{model}{Models fitted internally by \code{\link[penalized.clr]{penalized}}}
+#' \item{design}{Internally built design matrix including all indicator variables}
+#' \item{param}{Fitted coefficients (solely for internal use)}
+#' \item{param_fit}{Fitted coefficients (solely for internal use)}
+#' \item{pvalue}{P-values of the permutation tests performed during the fitting process}
+#' \item{dev}{Maximal value statistics of the selected variables in each iteration during the fitting process}
+#' \item{crit}{Critical values of the permutation tests during the fitting process}
+#' \item{minnodesize}{Minimal node size in order to be eligible for further splitting}
+#' \item{lambda}{L2 tuning parameter}
+#' \item{trace}{trace argument from call}
+#' \item{nperm}{nperm argument from call}
+#' \item{alpha}{Level of significance for permutation tests}
+#' \item{perm_test}{perm_test argument from call}
+#' \item{mtry}{mtry argument from call}
+#' \item{call}{function call}
+#' @author Gunther Schauberger: \email{gunther.schauberger@@tum.de} \cr
+#' Moritz Berger: \email{Moritz.Berger@@imbie.uni-bonn.de}
+#' @seealso \code{\link{plot.CLogitTree}}, \code{\link{bootci.CLogitTree}}, \code{\link{prune.CLogitTree}}
+#' @examples
+#' data(illu.small)
+#'
+#' set.seed(1860)
+#' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
+#'                         alpha = 0.05, nperm = 20, trace = FALSE)
+#'
+#' plot(illu.tree)
+#'
+#' @export
 CLogitTree <- function(data,
                        response,
                        exposure=NULL,
                        s,
                        alpha,
                        nperm,
-                       minnodesize=5,
+                       minnodesize=10,
                        perm_test=TRUE,
                        mtry=NULL,
                        lambda=0,
@@ -348,7 +402,8 @@ CLogitTree <- function(data,
                       "splits"=splits,
                       "Z"=Z,
                       "y"=y,
-                      "y_tab"=y_tab,
+                      "strata" = dat0[,s],
+                      "exposure" = dat0[,exposure],
                       "minnodesize" = minnodesize,
                       "lambda" = lambda,
                       "trace" = trace,
@@ -363,3 +418,43 @@ CLogitTree <- function(data,
   return(to_return)
 
 }
+
+
+
+#' Illustrative data
+#'
+#' A small simulated dataset for illustration of the CLogitTree method.
+#'
+#' @name illu.small
+#' @docType data
+#'
+#' @format A data frame with 400 rows and 5 variables
+#' \describe{
+#'   \item{x}{Exposure variable}
+#'   \item{strata}{Strata variable}
+#'   \item{Z4}{Explanatory/confounder variable}
+#'   \item{Z5}{Explanatory/confounder variable}
+#'   \item{y}{Case-control status (1: case; 0: control)}
+#' }
+NULL
+
+
+#' Illustrative data
+#'
+#' A simulated dataset for illustration of the CLogitTree method.
+#'
+#' @name illu.data
+#' @docType data
+#'
+#' @format A data frame with 1600 rows and 8 variables
+#' \describe{
+#'   \item{x}{Exposure variable}
+#'   \item{strata}{Strata variable}#'
+#'   \item{Z1}{Explanatory/confounder variable}
+#'   \item{Z2}{Explanatory/confounder variable}
+#'   \item{Z3}{Explanatory/confounder variable}
+#'   \item{Z4}{Explanatory/confounder variable}
+#'   \item{Z5}{Explanatory/confounder variable}
+#'   \item{y}{Case-control status (1: case; 0: control)}
+#' }
+NULL
