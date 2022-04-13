@@ -4,7 +4,7 @@
 \alias{bootci.CLogitTree}
 \title{Bootstrap confidence intervals for CLogitTree}
 \usage{
-\method{bootci}{CLogitTree}(model, B = 100, alpha.ci = 0.05, ...)
+\method{bootci}{CLogitTree}(model, B = 100, ncores = 2, alpha.ci = 0.05, ...)
 }
 \arguments{
 \item{model}{Original CLogitTree model}
@@ -28,7 +28,7 @@ data(illu.small)
 
 set.seed(1860)
 illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-                        alpha = 0.05, nperm = 20, trace = FALSE)
+                        alpha = 0.05, nperm = 20, print.trace = FALSE)
 
 plot(illu.tree)
 

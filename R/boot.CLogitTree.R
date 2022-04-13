@@ -25,7 +25,7 @@ bootci <- function (model, ...) {
 #'
 #' set.seed(1860)
 #' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-#'                         alpha = 0.05, nperm = 20, trace = FALSE)
+#'                         alpha = 0.05, nperm = 20, print.trace = FALSE)
 #'
 #' plot(illu.tree)
 #'
@@ -33,62 +33,111 @@ bootci <- function (model, ...) {
 #' illu.boot <- bootci(illu.tree, B = 10, alpha = 0.2)
 #' }
 #' @export
-bootci.CLogitTree <- function(model, B = 100, alpha.ci = 0.05, ...){
+bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, ...){
 
-  X = cbind(model$Z, model$exposure, model$strata, model$y)
-  names(X)[(ncol(X)-2):ncol(X)] <- c("Xexpo", "Xstrata","Xy")
+  Xboot = cbind(model$Z, model$exposure, model$strata, model$y)
+  names(Xboot)[(ncol(Xboot)-2):ncol(Xboot)] <- c("Xexpo", "Xstrata","Xy")
 
   index <- levels(droplevels(as.factor(model$strata)))
 
+  alpha <- model$alpha
+  nperm <- model$nperm
+  minnodesize <- model$minnodesize
+  perm_test <- model$perm_test
+  mtry <- model$mtry
+  lambda <- model$lambda
+  print.trace <- model$print.trace
+  fit <- model$fit
+
   if(is.null(model$beta_hat)){
-    beta_hat <- CLogitTree(data = X,
+    beta_hat <- CLogitTree(data = Xboot,
                        response = "Xy",
                        exposure="Xexpo",
                        s = "Xstrata",
-                       alpha = model$alpha,
-                       nperm = model$nperm,
-                       minnodesize=model$minnodesize,
-                       perm_test=model$perm_test,
-                       mtry=model$mtry,
-                       lambda=model$lambda,
-                       trace=model$trace,
-                       fit=TRUE)$beta_hat
+                       alpha = alpha,
+                       nperm = nperm,
+                       minnodesize=minnodesize,
+                       perm_test=perm_test,
+                       mtry=mtry,
+                       lambda=lambda,
+                       print.trace=print.trace,
+                       fit=TRUE,
+                       ncores = ncores)$beta_hat
   }else{
     beta_hat <- model$beta_hat
   }
 
 
 
-  beta.hat.vec <- rep(NA,B)
+  # beta.hat.vec <- rep(NA,B)
+  #
+  # for(j in 1:B){
+  #   cat("Starting bootstrap iteration ",j,"out of ",B,"\n")
+  # index2 <- sample(index, size = length(index), replace = TRUE)
+  #
+  #
+  #
+  # X2 <- c()
+  # for(i in 1:length(index2)){
+  #   Xnew <- X[X$Xstrata == index2[i],]
+  #   Xnew$Xstrata <- rep(i, nrow(Xnew))
+  #   X2 <- rbind(X2, Xnew)
+  # }
+  #
+  # ret <- CLogitTree(data = X2,
+  #                   response = "Xy",
+  #                   exposure="Xexpo",
+  #                   s = "Xstrata",
+  #                   alpha = model$alpha,
+  #                   nperm = model$nperm,
+  #                   minnodesize=model$minnodesize,
+  #                   perm_test=model$perm_test,
+  #                   mtry=model$mtry,
+  #                   lambda=model$lambda,
+  #                   print.trace=model$print.trace,
+  #                   fit=TRUE)
+  #
+  # beta.hat.vec[j] <- ret$beta_hat
+  # }
 
-  for(j in 1:B){
-    cat("Starting bootstrap iteration ",j,"out of ",B,"\n")
-  index2 <- sample(index, size = length(index), replace = TRUE)
 
 
+  seeds <- abs(round(rnorm(B) * 1e8))
 
-  X2 <- c()
-  for(i in 1:length(index2)){
-    Xnew <- X[X$Xstrata == index2[i],]
-    Xnew$Xstrata <- rep(i, nrow(Xnew))
-    X2 <- rbind(X2, Xnew)
+  if(ncores ==1){
+    beta.hat.vec <- sapply(seeds, one_boot_fun,
+                  index = index,
+                  Xboot = Xboot,
+                  alpha = alpha,
+                  nperm = nperm,
+                  minnodesize = minnodesize,
+                  perm_test = perm_test,
+                  mtry = mtry,
+                  lambda = lambda,
+                  print.trace = print.trace,
+                  fit = fit)
+  }else{
+
+    cl <- makeCluster(ncores, outfile = "")
+
+    clusterExport(cl, varlist = c("index", "Xboot", "alpha", "nperm", "minnodesize",
+                                  "perm_test", "mtry", "lambda", "print.trace", "fit"),
+                  envir = sys.frame(sys.nframe()))
+
+    beta.hat.vec <- parSapply(cl, seeds, one_boot_fun,
+                     index = index,
+                     Xboot = Xboot,
+                     alpha = alpha,
+                     nperm = nperm,
+                     minnodesize = minnodesize,
+                     perm_test = perm_test,
+                     mtry = mtry,
+                     lambda = lambda,
+                     print.trace = print.trace,
+                     fit = fit)
+    stopCluster(cl)
   }
 
-  ret <- CLogitTree(data = X2,
-                    response = "Xy",
-                    exposure="Xexpo",
-                    s = "Xstrata",
-                    alpha = model$alpha,
-                    nperm = model$nperm,
-                    minnodesize=model$minnodesize,
-                    perm_test=model$perm_test,
-                    mtry=model$mtry,
-                    lambda=model$lambda,
-                    trace=model$trace,
-                    fit=TRUE)
-
-  beta.hat.vec[j] <- ret$beta_hat
-  }
 
 
   return(list(beta_hat = beta_hat, ci_beta = quantile(beta.hat.vec, c(alpha.ci/2, 1-alpha.ci/2))))

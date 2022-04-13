@@ -143,6 +143,24 @@ one_permutation <- function(var,exposure,s,kn,count,nvar,n_levels,ordered_values
 
 }
 
+one_permutation2 <- function(seed, var, exposure,s,kn,count,nvar,n_levels,ordered_values,
+                            DM_kov,which_obs,splits_evtl,params,dat0,mod0,n_s){
+# browser()
+  set.seed(seed)
+  obs_aktuell <- which_obs[[count]][kn,]
+  obs_aktuell <- obs_aktuell[!is.na(obs_aktuell)]
+  DM_kov_perm <- DM_kov
+  DM_kov_perm[obs_aktuell,var] <- sample(DM_kov_perm[obs_aktuell,var],length(obs_aktuell))
+
+  design_upper_perm      <- designlists(DM_kov_perm,nvar,n_s,n_levels,ordered_values)[[1]]
+  design_lower_perm      <- designlists(DM_kov_perm,nvar,n_s,n_levels,ordered_values)[[2]]
+
+  dv_perm <- allmodels(var,exposure,s,kn,count,design_lower_perm,design_upper_perm,splits_evtl,params,dat0,mod0,n_s)
+
+  return(max(dv_perm))
+
+}
+
 # functions to fix names
 check_names <- function(model_names, param_names){
 
@@ -169,4 +187,36 @@ check_names_list <- function(model_names_list, param_names_list){
     model_names_list[[j]] <- check_names(model_names_list[[j]],param_names_list[[j]])
   }
   return(model_names_list)
+}
+
+
+one_boot_fun <- function(seed, index, Xboot, alpha, nperm, minnodesize,
+                         perm_test, mtry, lambda, print.trace, fit){
+  set.seed(seed)
+
+  index2 <- sample(index, size = length(index), replace = TRUE)
+
+  X2 <- c()
+  for(i in 1:length(index2)){
+    Xnew <- Xboot[Xboot$Xstrata == index2[i],]
+    Xnew$Xstrata <- rep(i, nrow(Xnew))
+    X2 <- rbind(X2, Xnew)
+  }
+
+  ret <- CLogitTree(data = X2,
+                    response = "Xy",
+                    exposure="Xexpo",
+                    s = "Xstrata",
+                    alpha = alpha,
+                    nperm = nperm,
+                    minnodesize=minnodesize,
+                    perm_test=perm_test,
+                    mtry=mtry,
+                    lambda=lambda,
+                    print.trace=print.trace,
+                    fit=TRUE,
+                    ncores = 1)
+
+  return(ret$beta_hat)
+
 }

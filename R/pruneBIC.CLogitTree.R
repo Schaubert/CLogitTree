@@ -1,9 +1,16 @@
 #' Pruning for CLogitTree
 #'
-#' Prunes trees built by \code{\link{CLogitTree}}. Pruning is steered by the significance level used within permutation tests.
+#' @param tree Original CLogitTree model
+#' @param ... Further arguments
+pruneBIC <- function (tree, ...) {
+  UseMethod("pruneBIC", tree)
+}
+#'
+#' Pruning for CLogitTree
+#'
+#' Prunes trees built by \code{\link{CLogitTree}}. Pruning is steered by the BIC of the sequence of fitted models during tree building.
 #'
 #' @param tree Original CLogitTree model
-#' @param alpha Level of significance used in internal permutation tests
 #' @param ... Further prune arguments
 #' @return \code{\link{CLogitTree}} object
 #' @author Gunther Schauberger: \email{gunther.schauberger@@tum.de} \cr
@@ -16,22 +23,12 @@
 #' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
 #'                         alpha = 0.05, nperm = 20, print.trace = FALSE)
 #'
-#' plot(prune(illu.tree,0.01))
+#' plot(pruneBIC(illu.tree))
 #'
 #' @export
-prune.CLogitTree <- function(tree,
-                             alpha, ...){
+pruneBIC.CLogitTree <- function(tree, ...){
 
-
-  alpha_adj <- alpha/ncol(tree$Z)
-
-
-  if(!any(tree$pvalue>alpha_adj)){
-    iter <- length(tree$pvalue)
-  }else{
-    iter <- min(which(tree$pvalue>alpha_adj))
-  }
-
+  iter <- which.min(tree$BIC)
 
   model      <- tree$model[[iter]]
   params     <- tree$param[[iter]]
@@ -95,7 +92,7 @@ prune.CLogitTree <- function(tree,
                      "lambda" = tree$lambda,
                      "trace" = tree$trace,
                      "nperm" = tree$nperm,
-                     "alpha" = alpha,
+                     "alpha" = tree$alpha,
                      "perm_test" = tree$perm_test,
                      "mtry" = tree$mtry,
                      "call"=tree$call)

@@ -29,7 +29,7 @@
 #'
 #' set.seed(1860)
 #' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-#'                         alpha = 0.05, nperm = 20, trace = FALSE)
+#'                         alpha = 0.05, nperm = 20, print.trace = FALSE)
 #'
 #' plot(illu.tree)
 #'

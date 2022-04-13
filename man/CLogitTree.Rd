@@ -9,13 +9,16 @@ CLogitTree(
   response,
   exposure = NULL,
   s,
-  alpha,
-  nperm,
+  alpha = 0.05,
+  nperm = 500,
   minnodesize = 10,
+  minbucket = 5,
+  depth_max = NULL,
   perm_test = TRUE,
   mtry = NULL,
   lambda = 0,
-  trace = TRUE,
+  print.trace = TRUE,
+  ncores = 1,
   fit = TRUE
 )
 }
@@ -34,13 +37,19 @@ CLogitTree(
 
 \item{minnodesize}{Minimal node size in order to be eligible for further splitting}
 
+\item{minbucket}{Minimum number of observations in any terminal node}
+
+\item{depth_max}{Maximum depth of the tree, with the root node counted as depth 0. If \code{NULL} (default), the size of the trees is not restricted.}
+
 \item{perm_test}{\code{TRUE} for regular use where  permutation tests are done.}
 
 \item{mtry}{Solely for internal use}
 
 \item{lambda}{Tuning parameter for L2 optional penalty}
 
-\item{trace}{Shall trace of permutation tests be printed?}
+\item{print.trace}{Shall trace of permutation tests be printed?}
+
+\item{ncores}{Number of parallel nodes to use for permutation tests.}
 
 \item{fit}{Shall the internally fitted models be returned (required for the use of \code{\link[ClogitTree]{prune}})?}
 }
@@ -61,13 +70,17 @@ CLogitTree(
 \item{pvalue}{P-values of the permutation tests performed during the fitting process}
 \item{dev}{Maximal value statistics of the selected variables in each iteration during the fitting process}
 \item{crit}{Critical values of the permutation tests during the fitting process}
+\item{BIC}{BICs of the internally fitted models (based on the unpenalized likelihood)}
 \item{minnodesize}{Minimal node size in order to be eligible for further splitting}
+\item{minbucket}{Minimum number of observations in any terminal node}
+\item{depth_max}{Maximum depth of the tree}
 \item{lambda}{L2 tuning parameter}
-\item{trace}{trace argument from call}
+\item{print.trace}{print.trace argument from call}
 \item{nperm}{nperm argument from call}
 \item{alpha}{Level of significance for permutation tests}
 \item{perm_test}{perm_test argument from call}
 \item{mtry}{mtry argument from call}
+\item{ncores}{Number of parallel nodes to use for permutation tests.}
 \item{call}{function call}
 }
 \description{
@@ -79,7 +92,7 @@ data(illu.small)
 
 set.seed(1860)
 illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-                        alpha = 0.05, nperm = 20, trace = FALSE)
+                        alpha = 0.05, nperm = 20, print.trace = FALSE)
 
 plot(illu.tree)
 

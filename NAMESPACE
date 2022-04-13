@@ -1,14 +1,21 @@
 export("CLogitTree")
+
 export("bootci")
+
+export(prune)
+export(pruneBIC)
+
 
 S3method(plot, CLogitTree)
 S3method(prune, CLogitTree)
+S3method(pruneBIC, CLogitTree)
 S3method(bootci, CLogitTree)
 
 importFrom(Epi,clogistic)
 importFrom(plotrix,draw.ellipse)
 importFrom(penalizedclr,penalized.clr)
 importFrom(generics,prune)
+importFrom(parallel,makeCluster, stopCluster, clusterExport, parSapply, clusterEvalQ)
 
   importFrom("grDevices", "grey")
   importFrom("graphics", "lines", "plot.new", "plot.window", "points",
