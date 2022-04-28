@@ -51,7 +51,7 @@ CLogitTree(
 
 \item{ncores}{Number of parallel nodes to use for permutation tests.}
 
-\item{fit}{Shall the internally fitted models be returned (required for the use of \code{\link[ClogitTree]{prune}})?}
+\item{fit}{Shall the internally fitted models be returned (required for the use of \code{\link[CLogitTree]{prune}})?}
 }
 \value{
 \item{beta_hat}{Estimate for separate exposure  effect}

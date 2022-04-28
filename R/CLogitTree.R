@@ -17,7 +17,7 @@
 #' @param lambda Tuning parameter for L2 optional penalty
 #' @param print.trace Shall trace of permutation tests be printed?
 #' @param ncores Number of parallel nodes to use for permutation tests.
-#' @param fit Shall the internally fitted models be returned (required for the use of \code{\link[ClogitTree]{prune}})?
+#' @param fit Shall the internally fitted models be returned (required for the use of \code{\link[CLogitTree]{prune}})?
 #'
 #' @return
 #' \item{beta_hat}{Estimate for separate exposure  effect}

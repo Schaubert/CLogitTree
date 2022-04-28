@@ -11,6 +11,7 @@ bootci <- function (model, ...) {
 #'
 #' @param model Original CLogitTree model
 #' @param B Number of bootstrap iterations
+#' @param ncores Number of parallel cores to use
 #' @param alpha.ci Confidence level of confidence intervals is calculated as \code{1-alpha.ci}.
 #' @param ... Further bootci arguments
 #' @return

@@ -1,19 +1,6 @@
-export("CLogitTree")
-
-export("bootci")
-
-export(prune)
-export(pruneBIC)
-
-
-S3method(plot, CLogitTree)
-S3method(prune, CLogitTree)
-S3method(pruneBIC, CLogitTree)
-S3method(bootci, CLogitTree)
-
 importFrom(Epi,clogistic)
 importFrom(plotrix,draw.ellipse)
-importFrom(penalizedclr,penalized.clr)
+#importFrom(penalizedclr,penalized.clr)
 importFrom(generics,prune)
 importFrom(parallel,makeCluster, stopCluster, clusterExport, parSapply, clusterEvalQ)
 
@@ -21,4 +8,22 @@ importFrom(parallel,makeCluster, stopCluster, clusterExport, parSapply, clusterE
   importFrom("graphics", "lines", "plot.new", "plot.window", "points",
              "rect", "text")
   importFrom("stats", "coefficients", "formula", "model.matrix",
-             "quantile")
+             "quantile", "coef", "rnorm", "var")
+
+  importFrom("utils", "capture.output")
+
+importFrom(survival,strata)
+
+
+
+export(prune)
+export("CLogitTree")
+export("bootci")
+export(pruneBIC)
+
+S3method(plot, CLogitTree)
+S3method(prune, CLogitTree)
+S3method(pruneBIC, CLogitTree)
+S3method(bootci, CLogitTree)
+
+

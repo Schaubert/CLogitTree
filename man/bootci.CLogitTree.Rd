@@ -11,6 +11,8 @@
 
 \item{B}{Number of bootstrap iterations}
 
+\item{ncores}{Number of parallel cores to use}
+
 \item{alpha.ci}{Confidence level of confidence intervals is calculated as \code{1-alpha.ci}.}
 
 \item{...}{Further bootci arguments}

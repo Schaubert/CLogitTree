@@ -1,3 +1,11 @@
+
+#' Prune or reduce an object
+#'
+#' @param tree A fitted model object
+#' @param ... Other arguments passed to methods
+prune <- function (tree, ...) {
+  UseMethod("prune", tree)
+}
 #' Pruning for CLogitTree
 #'
 #' Prunes trees built by \code{\link{CLogitTree}}. Pruning is steered by the significance level used within permutation tests.
