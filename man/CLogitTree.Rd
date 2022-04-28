@@ -63,7 +63,7 @@ CLogitTree(
 \item{y_tab}{Table of the number of cases and the number of controls in each node}
 \item{strata}{Strata variable}
 \item{exposure}{Exposure variable}
-\item{model}{Models fitted internally by \code{\link[penalized.clr]{penalized}}}
+\item{model}{Models fitted internally by \code{\link[penalizedclr]{penalized.clr}}}
 \item{design}{Internally built design matrix including all indicator variables}
 \item{param}{Fitted coefficients (solely for internal use)}
 \item{param_fit}{Fitted coefficients (solely for internal use)}

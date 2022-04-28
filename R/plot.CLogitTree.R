@@ -166,12 +166,14 @@ plot.CLogitTree <- function(x,
         point_var <- unique(hilfspunkte[[info[i,"level"]]][help4,])
         points(point_var[1],point_var[2],cex=cex.lines-1,pch=19)
         if(info_inner){
-          if(info[i,"association"]=="-"){
-            text(point_var[1]-0.5, point_var[2], "-", cex=cex.lines)
-            text(point_var[1]+0.5, point_var[2], "+", cex=cex.lines)
-          } else{
-            text(point_var[1]-0.5, point_var[2], "+", cex=cex.lines)
-            text(point_var[1]+0.5, point_var[2], "-", cex=cex.lines)
+          if(!is.na(info[i,"association"])){
+            if(info[i,"association"]=="-"){
+              text(point_var[1]-0.5, point_var[2], "-", cex=cex.lines)
+              text(point_var[1]+0.5, point_var[2], "+", cex=cex.lines)
+            } else{
+              text(point_var[1]-0.5, point_var[2], "+", cex=cex.lines)
+              text(point_var[1]+0.5, point_var[2], "-", cex=cex.lines)
+            }
           }
         }
         point_left  <- c(point_var[1]-steps[info[i,"level"]]-branch_adj,point_var[2]-0.5)

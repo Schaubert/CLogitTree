@@ -22,8 +22,9 @@ data(illu.small)
 
 set.seed(1860)
 illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-                        alpha = 0.05, nperm = 20, print.trace = FALSE)
+                        perm.test = FALSE, print.trace = FALSE)
 
+plot(illu.tree)
 plot(pruneBIC(illu.tree))
 
 }

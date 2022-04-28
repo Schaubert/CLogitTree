@@ -21,8 +21,9 @@ pruneBIC <- function (tree, ...) {
 #'
 #' set.seed(1860)
 #' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-#'                         alpha = 0.05, nperm = 20, print.trace = FALSE)
+#'                         perm_test = FALSE, print.trace = FALSE, depth_max = 2)
 #'
+#' plot(illu.tree)
 #' plot(pruneBIC(illu.tree))
 #'
 #' @export
