@@ -90,13 +90,17 @@ pruneBIC.CLogitTree <- function(tree, ...){
                      "crit"=crits,
                      "BIC"=BICs,
                      "minnodesize" = tree$minnodesize,
+                     "minbucket" = tree$minbucket,
+                     "depth_max" = tree$depth_max,
                      "lambda" = tree$lambda,
                      "trace" = tree$trace,
                      "nperm" = tree$nperm,
                      "alpha" = tree$alpha,
                      "perm_test" = tree$perm_test,
                      "mtry" = tree$mtry,
-                     "call"=tree$call)
+                     "call"=tree$call,
+                     "print.trace" = tree$print.trace,
+                     "prunedBIC" = TRUE)
 
   class(to_return) <- "CLogitTree"
   return(to_return)

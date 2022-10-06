@@ -106,7 +106,9 @@ prune.CLogitTree <- function(tree,
                      "alpha" = alpha,
                      "perm_test" = tree$perm_test,
                      "mtry" = tree$mtry,
-                     "call"=tree$call)
+                     "call"=tree$call,
+                     "print.trace" = tree$print.trace,
+                     "prunedBIC" = FALSE)
 
   class(to_return) <- "CLogitTree"
   return(to_return)

@@ -523,7 +523,8 @@ CLogitTree <- function(data,
                        "perm_test" = perm_test,
                        "mtry" = mtry,
                        "ncores" = ncores,
-                       "call"=match.call())
+                       "call"=match.call(),
+                       "prunedBIC" = FALSE)
   }else{
     to_return <- list("beta_hat"=beta_hat,
                       "gamma_hat"=gamma_hat,
@@ -543,7 +544,8 @@ CLogitTree <- function(data,
                       "perm_test" = perm_test,
                       "mtry" = mtry,
                       "ncores" = ncores,
-                      "call"= match.call())
+                      "call"= match.call(),
+                      "prunedBIC" = FALSE)
   }
 
   class(to_return) <- "CLogitTree"

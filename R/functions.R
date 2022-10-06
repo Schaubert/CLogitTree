@@ -190,8 +190,8 @@ check_names_list <- function(model_names_list, param_names_list){
 }
 
 
-one_boot_fun <- function(seed, index, Xboot, alpha, nperm, minnodesize,
-                         perm_test, mtry, lambda, print.trace, fit){
+one_boot_fun <- function(seed, index, Xboot, alpha, nperm, minnodesize, minbucket, depth_max,
+                         perm_test, mtry, lambda, print.trace, fit, prunedBIC){
   set.seed(seed)
 
   index2 <- sample(index, size = length(index), replace = TRUE)
@@ -210,12 +210,18 @@ one_boot_fun <- function(seed, index, Xboot, alpha, nperm, minnodesize,
                     alpha = alpha,
                     nperm = nperm,
                     minnodesize=minnodesize,
+                    minbucket = minbucket,
+                    depth_max = depth_max,
                     perm_test=perm_test,
                     mtry=mtry,
                     lambda=lambda,
                     print.trace=print.trace,
                     fit=TRUE,
                     ncores = 1)
+
+  if(prunedBIC){
+    ret <- pruneBIC(ret)
+  }
 
   return(ret$beta_hat)
 

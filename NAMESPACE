@@ -22,6 +22,7 @@ export("bootci")
 export(pruneBIC)
 
 S3method(plot, CLogitTree)
+S3method(predict, CLogitTree)
 S3method(prune, CLogitTree)
 S3method(pruneBIC, CLogitTree)
 S3method(bootci, CLogitTree)

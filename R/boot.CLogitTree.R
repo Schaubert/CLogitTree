@@ -13,6 +13,8 @@ bootci <- function (model, ...) {
 #' @param B Number of bootstrap iterations
 #' @param ncores Number of parallel cores to use
 #' @param alpha.ci Confidence level of confidence intervals is calculated as \code{1-alpha.ci}.
+#' @param BIC Should the model be pruned using BIC after the fitting? Default is \code{FALSE}, which is used if
+#' early stopping is determined by permutation tests.
 #' @param ... Further bootci arguments
 #' @return
 #' \item{beta_hat}{Estimate for separate exposure  effect}
@@ -31,7 +33,7 @@ bootci <- function (model, ...) {
 #' plot(illu.tree)
 #'
 #' set.seed(1860)
-#' illu.boot <- bootci(illu.tree, B = 10, alpha = 0.2)
+#' illu.boot <- bootci(illu.tree, B = 10, alpha.ci = 0.2)
 #' }
 #' @export
 bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, ...){
@@ -44,26 +46,36 @@ bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, ...){
   alpha <- model$alpha
   nperm <- model$nperm
   minnodesize <- model$minnodesize
+  minbucket <- model$minbucket
+  depth_max <- model$depth_max
   perm_test <- model$perm_test
   mtry <- model$mtry
   lambda <- model$lambda
   print.trace <- model$print.trace
   fit <- model$fit
+  prunedBIC <- model$prunedBIC
 
   if(is.null(model$beta_hat)){
-    beta_hat <- CLogitTree(data = Xboot,
+    mod <- CLogitTree(data = Xboot,
                        response = "Xy",
                        exposure="Xexpo",
                        s = "Xstrata",
                        alpha = alpha,
                        nperm = nperm,
                        minnodesize=minnodesize,
-                       perm_test=perm_test,
-                       mtry=mtry,
-                       lambda=lambda,
-                       print.trace=print.trace,
-                       fit=TRUE,
+                       minbucket = minbucket,
+                       depth_max = depth_max,
+                       perm_test = perm_test,
+                       mtry = mtry,
+                       lambda = lambda,
+                       print.trace = print.trace,
+                       fit = TRUE,
                        ncores = ncores)$beta_hat
+    beta_hat <- mod$beta_hat
+
+    if(prunedBIC){
+      beta_hat <- pruneBIC(mod)$beta_hat
+    }
   }else{
     beta_hat <- model$beta_hat
   }
@@ -112,17 +124,21 @@ bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, ...){
                   alpha = alpha,
                   nperm = nperm,
                   minnodesize = minnodesize,
+                  minbucket = minbucket,
+                  depth_max = depth_max,
                   perm_test = perm_test,
                   mtry = mtry,
                   lambda = lambda,
                   print.trace = print.trace,
-                  fit = fit)
+                  fit = fit,
+                  prunedBIC = prunedBIC)
   }else{
 
     cl <- makeCluster(ncores, outfile = "")
 
     clusterExport(cl, varlist = c("index", "Xboot", "alpha", "nperm", "minnodesize",
-                                  "perm_test", "mtry", "lambda", "print.trace", "fit"),
+                                  "minbucket", "depth_max", "perm_test", "mtry",
+                                  "lambda", "print.trace", "fit", "prunedBIC"),
                   envir = sys.frame(sys.nframe()))
 
     beta.hat.vec <- parSapply(cl, seeds, one_boot_fun,
@@ -131,14 +147,16 @@ bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, ...){
                      alpha = alpha,
                      nperm = nperm,
                      minnodesize = minnodesize,
+                     minbucket = minbucket,
+                     depth_max = depth_max,
                      perm_test = perm_test,
                      mtry = mtry,
                      lambda = lambda,
                      print.trace = print.trace,
-                     fit = fit)
+                     fit = fit,
+                     prunedBIC = prunedBIC)
     stopCluster(cl)
   }
-
 
 
   return(list(beta_hat = beta_hat, ci_beta = quantile(beta.hat.vec, c(alpha.ci/2, 1-alpha.ci/2))))
@@ -146,16 +164,3 @@ bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, ...){
 
 
 
-
-
-
-# boot.CLogitTree(data, model, R){
-#
-#   boot(data, boot.CLfun, R = R, model = model)
-# }
-#
-# set.seed(1860)
-# b1 <- boot.CLogitTree2(sub.mat2, tree.mod2)
-#
-# set.seed(1860)
-# boot::boot(sub.mat2, boot.CLfun, R = 10, model = tree.mod2)
