@@ -100,7 +100,8 @@ pruneBIC.CLogitTree <- function(tree, ...){
                      "mtry" = tree$mtry,
                      "call"=tree$call,
                      "print.trace" = tree$print.trace,
-                     "prunedBIC" = TRUE)
+                     "prunedBIC" = TRUE,
+                     "epsilon" = tree$epsilon)
 
   class(to_return) <- "CLogitTree"
   return(to_return)

@@ -1,2 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+CLogitForest_bootlog.txt
+CLogitForest_log.txt
+CLogitForest_varimp_log.txt
+CLogitTree_log.txt
+tunemtry_log.txt

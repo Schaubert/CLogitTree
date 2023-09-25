@@ -8,7 +8,7 @@
 A data frame with 1600 rows and 8 variables
 \describe{
   \item{x}{Exposure variable}
-  \item{strata}{Strata variable}#'
+  \item{strata}{Strata variable}
   \item{Z1}{Explanatory/confounder variable}
   \item{Z2}{Explanatory/confounder variable}
   \item{Z3}{Explanatory/confounder variable}

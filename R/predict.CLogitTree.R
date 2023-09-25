@@ -1,18 +1,50 @@
-#' Predict for CLogitTree
+#' Predict function for CLogitTree
+#'
+#' Predicts the linear predictor of estimated CLogitTree models
+#'
+#' @param object CLogitTree object
+#' @param response Name of response variable (character)
+#' @param exposure Name of (optional) separate exposure variable (character)
+#' @param s Name of strata variable (character)
+#' @param newdata (Optional) new data frame. If \code{newdata = NULL}, the original data set from \code{object} is used.
+#' @param type Type of prediction that is required. For option \code{"link"} (default), the prediction of the
+#' linear predictor per observation is returned. For option \code{"response"} (default), the prediction of the
+#' probability per observation is returned. This probability is conditional on the stratum,
+#' i.e. the probabilities per stratum add up to 1. For option \code{"loglik"}, the prediction of the conditional log-likelihood
+#' per stratum is returned. For option \code{"tree"}, the prediction of the tree (without exposure effect)
+#' per observation is returned.
+#' @param offset Optional offset argument, mainly for internal use
+#' @param ... Further predict arguments
+#' @return Vector containing predicted linear predictors
+#' @author Gunther Schauberger: \email{gunther.schauberger@@tum.de} \cr
+#' Moritz Berger: \email{moritz.berger@@imbie.uni-bonn.de}
+#' @seealso \code{\link{CLogitTree}}
 #' @export
 predict.CLogitTree <- function(object,
                                response,
                                exposure=NULL,
                                s,
                                newdata=NULL,
+                               type = c("link", "response", "loglik", "tree"),
+                               offset = NULL,
                                ...){
+  type <- match.arg(type)
+
+
 
   if(is.null(newdata)){
 
     Z <- object$Z
     nvar <- ncol(Z)
 
+      newdata <- object$data
+      strata <- object$strata
+      y <- object$y
+
+
   } else{
+    strata <- newdata[, names(newdata) == s]
+
 
     y <- newdata[, names(newdata) == response]
     Z <- newdata[,!names(newdata)%in%c(response,exposure,s)]
@@ -36,7 +68,7 @@ predict.CLogitTree <- function(object,
 
   }
 
-  gamma_hat <- object$gamma_hat
+  gamma_hat <- object$gamma_hat_sym
 
   if(!is.null(gamma_hat)){
     ordered_values <- lapply(1:nvar, function(j) ord_values(object$Z[,j]))
@@ -55,10 +87,11 @@ predict.CLogitTree <- function(object,
 
     eta_gamma <- mm%*%gamma_hat[colnames(mm)]
   } else{
-    eta_gamma <- 0
+    eta_gamma <- rep(0,nrow(Z))
   }
 
-  if(!is.null(exposure)){
+
+  if((!is.null(exposure) | !is.null(object$exposure)) & type != "tree"){
     beta_hat  <- object$beta_hat
     if(is.null(newdata)){
       expo <- object$exposure
@@ -66,12 +99,58 @@ predict.CLogitTree <- function(object,
       expo <- newdata[, names(newdata) == exposure]
     }
     if(is.factor(expo)){
-      expo <- as.numeric(expo)-1
+      expo <- as.numeric(expo)-min(as.numeric(expo))
     }
     eta <- eta_gamma + expo*beta_hat
   } else{
     eta <- eta_gamma
   }
 
- return(eta)
+# browser()
+
+  if(!is.null(offset)){
+    if(length(offset)==1){
+      rep(offset, length(eta))
+      warning("Offset value is scalar, but should have the length of data or newdata.")
+    }
+
+    if(length(offset)==length(eta)){
+      eta <- eta + offset
+    }else{
+      stop("Length of offset does not conincide to length of eta!")
+    }
+
+  }
+
+
+  if(type == "loglik"){
+
+
+    pred.list <- split(eta, strata)
+    y.list <- split(y, strata)
+
+
+    ll <- c()
+    for(zz in 1:length(y.list)){
+      ll <- c(ll, prod(exp(pred.list[[zz]]*y.list[[zz]]))/sum(exp(pred.list[[zz]])))
+    }
+    return(ll)
+  }else{
+    if(type == "response"){
+      pred.list <- split(eta, strata)
+      y.list <- split(y, strata)
+
+
+      mu <- c()
+      for(zz in 1:length(y.list)){
+        mu <- c(mu, prod(exp(pred.list[[zz]]))/sum(exp(pred.list[[zz]])))
+      }
+      return(mu)
+    }else{
+      return(c(eta))
+    }
+  }
+
+
+
 }

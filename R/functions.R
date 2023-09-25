@@ -17,9 +17,10 @@ lu <- function(last=last, cd=cd, d=d, erg){
 # modify factors
 mod_factors <- function(y, x){
   tab <- table(x,y)
+  tab <- tab[rowSums(tab)>0,]
   nx  <- rowSums(tab)
   ptab <- tab/nx
-  pp  <- colMeans(ptab)
+  pp  <- colMeans(ptab, na.rm=T)
   ptabc <- t(apply(ptab,1, function(x) x-pp))
   sig   <- matrix(0, nrow=ncol(tab), ncol=ncol(tab))
   for(j in 1:nrow(tab)){
@@ -92,7 +93,7 @@ designlists <- function(DM_kov,nvar,n_s,n_levels,ordered_values){
   return(list(design_lower,design_upper))
 }
 
-one_model <- function(var,exposure,s,kn,count,j,design_lower,design_upper,params,dat0){
+one_model <- function(var,exposure,s,kn,count,j,design_lower,design_upper,params,dat0,offset_vec, epsilon){
 
   dat   <- data.frame(dat0,design_lower[[var]][,j,drop=FALSE],design_upper[[var]][,j,drop=FALSE])
 
@@ -100,25 +101,28 @@ one_model <- function(var,exposure,s,kn,count,j,design_lower,design_upper,params
   help2 <- help1[-kn]
   help3 <- paste(help1[kn],c(colnames(design_lower[[var]])[j],colnames(design_upper[[var]])[j]),sep=":")
   help4 <- paste(c(exposure,help2,help3), collapse="+")
-  help5 <- formula(paste0("y~", help4))
-  mod   <- clogistic(help5, strata=dat[,s], data=dat)
+  help5 <- formula(paste0("y~", help4, "+ offset(offset_vec)"))
+  mod   <- clogistic(help5, strata=dat[,s], data=dat, eps = epsilon, toler.chol = epsilon/10)
   return(mod)
 }
 
-allmodels <- function(var,exposure,s,kn,count,design_lower,design_upper,splits_evtl,params,dat0,mod0,n_s){
-
+allmodels <- function(var,exposure,s,kn,count,design_lower,design_upper,splits_evtl,params,dat0,mod0,n_s,offset_vec,epsilon){
+# browser()
   deviances <- rep(0,n_s[var])
   splits_aktuell <- splits_evtl[[count]][[var]][kn,]
   splits_aktuell <- splits_aktuell[!is.na(splits_aktuell)]
 
   if(length(splits_aktuell)>0){
     for(j in splits_aktuell){
-      mod <- try(one_model(var,exposure,s,kn,count,j,design_lower,design_upper,params,dat0), silent=T)
-      if(!class(mod)=="try-error"){
+      mod <- try(one_model(var,exposure,s,kn,count,j,design_lower,design_upper,params,dat0,offset_vec,epsilon), silent=T)
+      if(!inherits(mod, "try-error")){
         if(is.null(mod0)){
-          deviances[j] <- (-2)*mod$loglik[1] - (-2)*mod$loglik[2]
+          LRstat <- (-2)*mod$loglik[1] - (-2)*mod$loglik[2]
         } else{
-          deviances[j] <- (-2)*mod0$loglik[2] - (-2)*mod$loglik[2]
+          LRstat <- (-2)*mod0$loglik[2] - (-2)*mod$loglik[2]
+        }
+        if(!is.na(LRstat)){
+          deviances[j] <- LRstat
         }
       }
     }
@@ -127,7 +131,7 @@ allmodels <- function(var,exposure,s,kn,count,design_lower,design_upper,splits_e
 }
 
 one_permutation <- function(var,exposure,s,kn,count,nvar,n_levels,ordered_values,
-                            DM_kov,which_obs,splits_evtl,params,dat0,mod0,n_s){
+                            DM_kov,which_obs,splits_evtl,params,dat0,mod0,n_s,offset,epsilon){
 
   obs_aktuell <- which_obs[[count]][kn,]
   obs_aktuell <- obs_aktuell[!is.na(obs_aktuell)]
@@ -137,14 +141,14 @@ one_permutation <- function(var,exposure,s,kn,count,nvar,n_levels,ordered_values
   design_upper_perm      <- designlists(DM_kov_perm,nvar,n_s,n_levels,ordered_values)[[1]]
   design_lower_perm      <- designlists(DM_kov_perm,nvar,n_s,n_levels,ordered_values)[[2]]
 
-  dv_perm <- allmodels(var,exposure,s,kn,count,design_lower_perm,design_upper_perm,splits_evtl,params,dat0,mod0,n_s)
+  dv_perm <- allmodels(var,exposure,s,kn,count,design_lower_perm,design_upper_perm,splits_evtl,params,dat0,mod0,n_s,offset,epsilon)
 
   return(max(dv_perm))
 
 }
 
 one_permutation2 <- function(seed, var, exposure,s,kn,count,nvar,n_levels,ordered_values,
-                            DM_kov,which_obs,splits_evtl,params,dat0,mod0,n_s){
+                            DM_kov,which_obs,splits_evtl,params,dat0,mod0,n_s,offset,epsilon){
 # browser()
   set.seed(seed)
   obs_aktuell <- which_obs[[count]][kn,]
@@ -155,7 +159,7 @@ one_permutation2 <- function(seed, var, exposure,s,kn,count,nvar,n_levels,ordere
   design_upper_perm      <- designlists(DM_kov_perm,nvar,n_s,n_levels,ordered_values)[[1]]
   design_lower_perm      <- designlists(DM_kov_perm,nvar,n_s,n_levels,ordered_values)[[2]]
 
-  dv_perm <- allmodels(var,exposure,s,kn,count,design_lower_perm,design_upper_perm,splits_evtl,params,dat0,mod0,n_s)
+  dv_perm <- allmodels(var,exposure,s,kn,count,design_lower_perm,design_upper_perm,splits_evtl,params,dat0,mod0,n_s,offset,epsilon)
 
   return(max(dv_perm))
 
@@ -191,7 +195,7 @@ check_names_list <- function(model_names_list, param_names_list){
 
 
 one_boot_fun <- function(seed, index, Xboot, alpha, nperm, minnodesize, minbucket, depth_max,
-                         perm_test, mtry, lambda, print.trace, fit, prunedBIC){
+                         perm_test, mtry, lambda, print.trace, fit, prunedBIC, epsilon){
   set.seed(seed)
 
   index2 <- sample(index, size = length(index), replace = TRUE)
@@ -217,11 +221,55 @@ one_boot_fun <- function(seed, index, Xboot, alpha, nperm, minnodesize, minbucke
                     lambda=lambda,
                     print.trace=print.trace,
                     fit=TRUE,
-                    ncores = 1)
+                    ncores = 1,
+                    epsilon = epsilon)
 
   if(prunedBIC){
     ret <- pruneBIC(ret)
   }
+
+  return(ret$beta_hat)
+
+}
+
+
+
+one_boot_forest <- function(seed, index, Xboot, minnodesize, minbucket, depth_max,
+                         ntree, mtry, subsample.632, lambda, print.trace, fit, response,
+                         exposure, s, BIC, linear.offset,epsilon){
+  set.seed(seed)
+
+
+  index2 <- sample(index, size = length(index), replace = TRUE)
+
+  X2 <- c()
+  for(i in 1:length(index2)){
+    Xnew <- Xboot[Xboot[,names(Xboot) == s] == index2[i],]
+    Xnew[,names(Xnew) == s] <- rep(i, nrow(Xnew))
+    X2 <- rbind(X2, Xnew)
+  }
+
+cat("Start new forest on bootstrap:\n")
+
+  ret <- CLogitForest(data = X2,
+                    response = response,
+                    exposure=exposure,
+                    s = s,
+                    ntree = ntree,
+                    mtry = mtry,
+                    subsample.632 = subsample.632,
+                    minnodesize=minnodesize,
+                    minbucket = minbucket,
+                    depth_max = depth_max,
+                    lambda = lambda,
+                    print.trace = print.trace,
+                    fit = TRUE,
+                    ncores = 1,
+                    BIC = BIC,
+                    # offset = offset,
+                    linear.offset = linear.offset,
+                    tune.mtry=FALSE,
+                    epsilon = epsilon)
 
   return(ret$beta_hat)
 

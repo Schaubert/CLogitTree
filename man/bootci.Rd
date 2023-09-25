@@ -2,7 +2,7 @@
 % Please edit documentation in R/boot.CLogitTree.R
 \name{bootci}
 \alias{bootci}
-\title{Bootstrap confidence intervals for CLogitTree}
+\title{Bootstrap confidence intervals for CLogitTree or CLogitForest}
 \usage{
 bootci(model, ...)
 }
@@ -12,5 +12,5 @@ bootci(model, ...)
 \item{...}{Further arguments}
 }
 \description{
-Bootstrap confidence intervals for CLogitTree
+Bootstrap confidence intervals for CLogitTree or CLogitForest
 }

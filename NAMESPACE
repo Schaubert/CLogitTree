@@ -1,14 +1,15 @@
 importFrom(Epi,clogistic)
+
 importFrom(plotrix,draw.ellipse)
 #importFrom(penalizedclr,penalized.clr)
 importFrom(generics,prune)
-importFrom(parallel,makeCluster, stopCluster, clusterExport, parSapply, clusterEvalQ)
+importFrom(parallel,makeCluster, stopCluster, clusterExport, parLapply, clusterEvalQ, parSapply)
 
   importFrom("grDevices", "grey")
   importFrom("graphics", "lines", "plot.new", "plot.window", "points",
-             "rect", "text")
+             "rect", "text","barplot")
   importFrom("stats", "coefficients", "formula", "model.matrix",
-             "quantile", "coef", "rnorm", "var")
+             "quantile", "coef", "rnorm", "var", "as.formula", "median", "predict")
 
   importFrom("utils", "capture.output")
 
@@ -19,12 +20,21 @@ importFrom(survival,strata)
 export(prune)
 export("CLogitTree")
 export("bootci")
+
 export(pruneBIC)
 
 S3method(plot, CLogitTree)
 S3method(predict, CLogitTree)
+S3method(print, CLogitTree)
 S3method(prune, CLogitTree)
 S3method(pruneBIC, CLogitTree)
 S3method(bootci, CLogitTree)
+S3method(bootci, CLogitForest)
 
 
+export("varimp")
+S3method(predict, CLogitForest)
+S3method(print, CLogitForest)
+S3method(varimp, CLogitForest)
+export("CLogitForest")
+S3method(plot, varimp.CLF)

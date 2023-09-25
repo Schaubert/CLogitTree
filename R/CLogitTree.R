@@ -14,10 +14,13 @@
 #' @param depth_max Maximum depth of the tree, with the root node counted as depth 0. If \code{NULL} (default), the size of the trees is not restricted.
 #' @param perm_test \code{TRUE} for regular use where  permutation tests are done.
 #' @param mtry Solely for internal use
-#' @param lambda Tuning parameter for L2 optional penalty
+#' @param lambda Tuning parameter for optional L2 penalty
+#' @param offset Optional offset used for model fitting
 #' @param print.trace Shall trace of permutation tests be printed?
 #' @param ncores Number of parallel nodes to use for permutation tests.
 #' @param fit Shall the internally fitted models be returned (required for the use of \code{\link[CLogitTree]{prune}})?
+#' @param epsilon Convergence tolerance. Iteration continues until the relative change
+#' in the conditional log likelihood is less than eps. Must be positive.
 #'
 #' @return
 #' \item{beta_hat}{Estimate for separate exposure  effect}
@@ -29,7 +32,7 @@
 #' \item{y_tab}{Table of the number of cases and the number of controls in each node}
 #' \item{strata}{Strata variable}
 #' \item{exposure}{Exposure variable}
-#' \item{model}{Models fitted internally by \code{\link[penalizedclr]{penalized.clr}}}
+#' \item{model}{Models fitted internally}
 #' \item{design}{Internally built design matrix including all indicator variables}
 #' \item{param}{Fitted coefficients (solely for internal use)}
 #' \item{param_fit}{Fitted coefficients (solely for internal use)}
@@ -48,44 +51,75 @@
 #' \item{mtry}{mtry argument from call}
 #' \item{ncores}{Number of parallel nodes to use for permutation tests.}
 #' \item{call}{function call}
+#' \item{prunedBIC}{For internal use}
+#' \item{epsilon}{Convergence tolerance}
 #' @author Gunther Schauberger: \email{gunther.schauberger@@tum.de} \cr
 #' Moritz Berger: \email{Moritz.Berger@@imbie.uni-bonn.de}
-#' @seealso \code{\link{plot.CLogitTree}}, \code{\link{bootci.CLogitTree}}, \code{\link{prune.CLogitTree}}
+#' @seealso \code{\link{plot.CLogitTree}}, \code{\link{bootci.CLogitTree}}, \code{\link{prune.CLogitTree}}, \code{\link{predict.CLogitTree}}
 #' @examples
 #' data(illu.small)
 #'
 #' set.seed(1860)
 #' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-#'                         alpha = 0.05, nperm = 20, print.trace = FALSE)
+#'                         alpha = 0.05, nperm = 20)
 #'
 #' plot(illu.tree)
-#'
+#' ## preferred procedure: pruning using BIC
+#' set.seed(1860)
+#' illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
+#'                         perm_test = FALSE, depth_max=4)
+#' illu.tree <- pruneBIC(illu.tree)
 #' @export
 CLogitTree <- function(data,
                        response,
-                       exposure=NULL,
+                       exposure = NULL,
                        s,
                        alpha = 0.05,
                        nperm = 500,
-                       minnodesize=10,
-                       minbucket=5,
-                       depth_max=NULL,
-                       perm_test=TRUE,
-                       mtry=NULL,
-                       lambda=0,
-                       print.trace=TRUE,
+                       minnodesize = 10,
+                       minbucket = 5,
+                       depth_max = NULL,
+                       perm_test = TRUE,
+                       mtry = NULL,
+                       lambda = 0,
+                       offset = NULL,
+                       print.trace = FALSE,
                        ncores = 1,
-                       fit=TRUE){
+                       fit = TRUE,
+                       epsilon = 1e-3){
 
   y <- data[, names(data) == response]
   Z    <- data[,!names(data)%in%c(response, exposure,s)]
+
+  # exclude variables from Z with only one value
+  exc <- numeric(ncol(Z))
+  for(j in 1:ncol(Z)){
+    if(length(unique(Z[,j]))==1){
+      exc[j] <- 1
+    }
+  }
+  Z <- Z[ ,exc==0]
+
   n    <- length(y)
   nvar <- ncol(Z)
+
+    #browser()
 
   if(!is.null(names(Z))){
     var_names <- names(Z)
   } else{
     var_names <- paste0("x",1:nvar)
+  }
+
+  # offset
+  if(is.null(offset)){
+    offset_vec <- rep(0, n)
+  }else{
+    if(length(offset)==1){
+      offset_vec <- rep(offset, n)
+    } else{
+      offset_vec <- offset
+    }
   }
 
   # modify design
@@ -138,12 +172,12 @@ CLogitTree <- function(data,
 
   dat0   <- design[[1]] <- data.frame("y"=y,"int"=rep(1,n),data)
   if(!is.null(exposure)){
-    form0  <- formula(paste0("y~",exposure))
-    mod0   <- clogistic(form0, strata = dat0[,s], data = dat0)
+    form0 <- formula(paste0("y~", exposure, "+ offset(offset_vec)"))
+    mod0   <- clogistic(form0, strata = dat0[,s], data = dat0, eps = epsilon, toler.chol = epsilon/10)
     BICs[1] <- (-2)*mod0$loglik[2]+log(n)*length(coef(mod0))
     mm <- model.matrix(mod0, data=dat0)
     invisible(capture.output(mod_potential[[1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,2, drop=FALSE], unpenalized=NULL,
-                                          lambda=0, alpha=10e-20)))
+                                                                   offset=offset_vec, lambda=0, alpha=10e-20, epsilon = epsilon)))
     params_fit[[1]] <- names(coefficients(mod0))
   } else{
     mod0   <- mod_potential[[1]] <- NULL
@@ -191,11 +225,12 @@ CLogitTree <- function(data,
     anysplit <- !all(is.na(unlist(splits_evtl[[count]])))
 
     if(anysplit){
-
+# browser()
       # draw mtry variables
       n_knots <- length(params[[count]])
       if(!is.null(mtry)){
         tryvars <- sapply(1:n_knots, function(kn) sample(1:nvar, mtry))
+        tryvars <- matrix(tryvars, ncol=n_knots)
       } else{
         tryvars <- sapply(1:n_knots, function(kn) 1:nvar)
       }
@@ -206,7 +241,7 @@ CLogitTree <- function(data,
                 which_knots <- which(!is.na(vars_evtl[[count]][,var]))
                 for(kn in which_knots){
                   if(var %in% tryvars[,kn]){
-                    deviances[,kn] <- allmodels(var,exposure,s,kn,count,design_lower,design_upper,splits_evtl,params,dat0,mod0,n_s)
+                    deviances[,kn] <- allmodels(var,exposure,s,kn,count,design_lower,design_upper,splits_evtl,params,dat0,mod0,n_s,offset_vec,epsilon)
                   }
                 }
                 return(deviances)
@@ -263,19 +298,22 @@ CLogitTree <- function(data,
                           params = params,
                           dat0 = dat0,
                           mod0 = mod0,
-                          n_s = n_s)
+                          n_s = n_s,
+                          offset = offset_vec,
+                          epsilon = epsilon)
           }else{
             # libspath <- .libPaths()
+            # cl <- makeCluster(ncores, outfile = "CLogitTree_log.txt")
             cl <- makeCluster(ncores, outfile = "")
 
             clusterExport(cl, varlist = c("variable","exposure", "s", "knoten", "count",
                                           "nvar", "n_levels", "ordered_values", "Z",
                                           "which_obs", "splits_evtl", "params", "dat0",
                                           "mod0", "n_s","designlists","allmodels",
-                                          "one_model"),
+                                          "one_model","epsilon","offset_vec"),
                           envir = sys.frame(sys.nframe()))
             # clusterEvalQ(cl, .libPaths(libspath))
-            # clusterEvalQ(cl, library(CLogitTree))
+            clusterEvalQ(cl, library(CLogitTree))
             dev <- parSapply(cl,seeds, one_permutation2,
                           var = variable,
                           exposure = exposure,
@@ -291,7 +329,9 @@ CLogitTree <- function(data,
                           params = params,
                           dat0 = dat0,
                           mod0 = mod0,
-                          n_s = n_s)
+                          n_s = n_s,
+                          offset = offset_vec,
+                          epsilon = epsilon)
             stopCluster(cl)
           }
 
@@ -315,24 +355,25 @@ CLogitTree <- function(data,
         if(proof){
 
           # fit new model
-          mod0  <- one_model(variable,exposure,s,knoten,count,split,design_lower,design_upper,params,dat0)
+          mod0  <- one_model(variable,exposure,s,knoten,count,split,design_lower,design_upper,params,dat0,offset_vec,epsilon)
           BICs[count+1] <- (-2)*mod0$loglik[2]+log(n)*length(coef(mod0))
           if(count==1 & is.null(exposure)){
             BICs[1] <- (-2)*mod0$loglik[1]+log(n)*length(coef(mod0))
           }
           dat0  <- design[[count+1]] <- data.frame(dat0,design_lower[[variable]][,split,drop=FALSE],design_upper[[variable]][,split,drop=FALSE])
           params_fit[[count+1]] <- names(coefficients(mod0))
-
+# browser()
           # fit final model with penalizedclr
           mm <- model.matrix(mod0, data=dat0)
           if(!is.null(exposure)){
             invisible(capture.output(mod_potential[[count+1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,-c(1,2,ncol(mm))], unpenalized=mm[,2],
-                                                        lambda=lambda, alpha=10e-20)))
+                                                                                 offset=offset_vec, lambda=lambda, alpha=10e-20, epsilon = epsilon)))
           } else{
+          #  invisible(capture.output(mod_potential[[count+1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,-c(1,2,ncol(mm))], unpenalized=NULL,
+          #                                                                       offset=offset_vec, lambda=lambda, alpha=10e-20, epsilon = epsilon)))
             invisible(capture.output(mod_potential[[count+1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,-c(1,ncol(mm))], unpenalized=NULL,
-                                                        lambda=lambda, alpha=10e-20)))
+                                                                               lambda=lambda, alpha=10e-20, epsilon = epsilon)))
           }
-
 
           # adjust knoten
           if(level>1){
@@ -524,7 +565,8 @@ CLogitTree <- function(data,
                        "mtry" = mtry,
                        "ncores" = ncores,
                        "call"=match.call(),
-                       "prunedBIC" = FALSE)
+                       "prunedBIC" = FALSE,
+                       "epsilon" = epsilon)
   }else{
     to_return <- list("beta_hat"=beta_hat,
                       "gamma_hat"=gamma_hat,
@@ -545,7 +587,8 @@ CLogitTree <- function(data,
                       "mtry" = mtry,
                       "ncores" = ncores,
                       "call"= match.call(),
-                      "prunedBIC" = FALSE)
+                      "prunedBIC" = FALSE,
+                      "epsilon" = epsilon)
   }
 
   class(to_return) <- "CLogitTree"
@@ -583,7 +626,7 @@ NULL
 #' @format A data frame with 1600 rows and 8 variables
 #' \describe{
 #'   \item{x}{Exposure variable}
-#'   \item{strata}{Strata variable}#'
+#'   \item{strata}{Strata variable}
 #'   \item{Z1}{Explanatory/confounder variable}
 #'   \item{Z2}{Explanatory/confounder variable}
 #'   \item{Z3}{Explanatory/confounder variable}

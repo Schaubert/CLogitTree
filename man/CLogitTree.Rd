@@ -17,9 +17,11 @@ CLogitTree(
   perm_test = TRUE,
   mtry = NULL,
   lambda = 0,
-  print.trace = TRUE,
+  offset = NULL,
+  print.trace = FALSE,
   ncores = 1,
-  fit = TRUE
+  fit = TRUE,
+  epsilon = 0.001
 )
 }
 \arguments{
@@ -45,13 +47,18 @@ CLogitTree(
 
 \item{mtry}{Solely for internal use}
 
-\item{lambda}{Tuning parameter for L2 optional penalty}
+\item{lambda}{Tuning parameter for optional L2 penalty}
+
+\item{offset}{Optional offset used for model fitting}
 
 \item{print.trace}{Shall trace of permutation tests be printed?}
 
 \item{ncores}{Number of parallel nodes to use for permutation tests.}
 
 \item{fit}{Shall the internally fitted models be returned (required for the use of \code{\link[CLogitTree]{prune}})?}
+
+\item{epsilon}{Convergence tolerance. Iteration continues until the relative change
+in the conditional log likelihood is less than eps. Must be positive.}
 }
 \value{
 \item{beta_hat}{Estimate for separate exposure  effect}
@@ -63,7 +70,7 @@ CLogitTree(
 \item{y_tab}{Table of the number of cases and the number of controls in each node}
 \item{strata}{Strata variable}
 \item{exposure}{Exposure variable}
-\item{model}{Models fitted internally by \code{\link[penalizedclr]{penalized.clr}}}
+\item{model}{Models fitted internally}
 \item{design}{Internally built design matrix including all indicator variables}
 \item{param}{Fitted coefficients (solely for internal use)}
 \item{param_fit}{Fitted coefficients (solely for internal use)}
@@ -82,6 +89,8 @@ CLogitTree(
 \item{mtry}{mtry argument from call}
 \item{ncores}{Number of parallel nodes to use for permutation tests.}
 \item{call}{function call}
+\item{prunedBIC}{For internal use}
+\item{epsilon}{Convergence tolerance}
 }
 \description{
 Performs CLogitTree, a tree-based method for the analysis of matched case-control studies. The estimation is embedded into the framework of conditional logistic regression.
@@ -92,13 +101,17 @@ data(illu.small)
 
 set.seed(1860)
 illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-                        alpha = 0.05, nperm = 20, print.trace = FALSE)
+                        alpha = 0.05, nperm = 20)
 
 plot(illu.tree)
-
+## preferred procedure: pruning using BIC
+set.seed(1860)
+illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
+                        perm_test = FALSE, depth_max=4)
+illu.tree <- pruneBIC(illu.tree)
 }
 \seealso{
-\code{\link{plot.CLogitTree}}, \code{\link{bootci.CLogitTree}}, \code{\link{prune.CLogitTree}}
+\code{\link{plot.CLogitTree}}, \code{\link{bootci.CLogitTree}}, \code{\link{prune.CLogitTree}}, \code{\link{predict.CLogitTree}}
 }
 \author{
 Gunther Schauberger: \email{gunther.schauberger@tum.de} \cr

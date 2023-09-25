@@ -16,9 +16,6 @@
 \item{alpha.ci}{Confidence level of confidence intervals is calculated as \code{1-alpha.ci}.}
 
 \item{...}{Further bootci arguments}
-
-\item{BIC}{Should the model be pruned using BIC after the fitting? Default is \code{FALSE}, which is used if
-early stopping is determined by permutation tests.}
 }
 \value{
 \item{beta_hat}{Estimate for separate exposure  effect}
@@ -33,12 +30,12 @@ data(illu.small)
 
 set.seed(1860)
 illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-                        alpha = 0.05, nperm = 20, print.trace = FALSE)
-
-plot(illu.tree)
+                        perm_test = FALSE, depth_max=4)
+illu.tree <- pruneBIC(illu.tree)
 
 set.seed(1860)
-illu.boot <- bootci(illu.tree, B = 10, alpha.ci = 0.2)
+tree.boot <- bootci(illu.tree, B = 10)
+tree.boot
 }
 }
 \seealso{

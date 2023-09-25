@@ -4,12 +4,14 @@ penalized.clr <- function(response,
                           stratum,
                           penalized,
                           unpenalized = NULL,
+                          offset = 0,
                           lambda = NULL,
                           alpha = 1,
                           p = NULL,
                           standardize = FALSE,
-                          event) {
-
+                          event,
+                          epsilon = 1e-10) {
+# browser()
   if (missing(event) && is.factor(response)) event <- levels(response)[1]
 
   if (is.factor(response)) response <- (response == event) * 1
@@ -19,7 +21,11 @@ penalized.clr <- function(response,
   }
   if (length(p) > 0 && sum(p) != ncol(penalized)) stop("elements of p must sum to the number of penalized covariates.")
 
-
+  if(length(offset)==1){
+    offset_vec <- rep(offset, length(response))
+  } else{
+    offset_vec <- offset
+  }
 
   if(is.null(lambda)){
     lambda <- find.default.lambda(response,
@@ -57,19 +63,21 @@ penalized.clr <- function(response,
 
 
   if (is.null(unpenalized)) {
-    fit <- penalized::penalized(Y ~ strata(stratum),
+    fit <- penalized::penalized(Y ~ strata(stratum) + offset(offset_vec),
       penalized = penalized,
       lambda1 = lambda1,
       lambda2 = lambda2,
-      standardize = standardize
+      standardize = standardize,
+      epsilon = epsilon
     )
   }
   else {
-    fit <- penalized::penalized(Y ~ strata(stratum) + unpenalized,
+    fit <- penalized::penalized(Y ~ strata(stratum) + unpenalized + offset(offset_vec),
       penalized = penalized,
       lambda1 = lambda1,
       lambda2 = lambda2,
-      standardize = standardize
+      standardize = standardize,
+      epsilon = epsilon
     )
   }
   return(list(
