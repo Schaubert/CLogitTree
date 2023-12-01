@@ -109,10 +109,12 @@ predict.CLogitForest <- function(object,
     pred <- rowMeans(pred.mat)
 
     if(type != "forest"){
+      if(!is.null(exposure)){
       if(median.exposure){
         pred <- pred + object$beta_median_hat * newdata[,exposure]
       }else{
         pred <- pred + object$beta_hat * newdata[,exposure]
+      }
       }
     }
 
@@ -128,7 +130,7 @@ predict.CLogitForest <- function(object,
   #   }
   # }
 
-
+    # browser()
 
   if(type == "loglik"){
     pred.list <- split(pred, newdata[, names(newdata) == s])

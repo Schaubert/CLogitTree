@@ -107,7 +107,7 @@ one_model <- function(var,exposure,s,kn,count,j,design_lower,design_upper,params
 }
 
 allmodels <- function(var,exposure,s,kn,count,design_lower,design_upper,splits_evtl,params,dat0,mod0,n_s,offset_vec,epsilon){
-# browser()
+
   deviances <- rep(0,n_s[var])
   splits_aktuell <- splits_evtl[[count]][[var]][kn,]
   splits_aktuell <- splits_aktuell[!is.na(splits_aktuell)]
@@ -149,7 +149,7 @@ one_permutation <- function(var,exposure,s,kn,count,nvar,n_levels,ordered_values
 
 one_permutation2 <- function(seed, var, exposure,s,kn,count,nvar,n_levels,ordered_values,
                             DM_kov,which_obs,splits_evtl,params,dat0,mod0,n_s,offset,epsilon){
-# browser()
+
   set.seed(seed)
   obs_aktuell <- which_obs[[count]][kn,]
   obs_aktuell <- obs_aktuell[!is.na(obs_aktuell)]
@@ -239,6 +239,7 @@ one_boot_forest <- function(seed, index, Xboot, minnodesize, minbucket, depth_ma
                          exposure, s, BIC, linear.offset,epsilon){
   set.seed(seed)
 
+# browser()
 
   index2 <- sample(index, size = length(index), replace = TRUE)
 
@@ -250,6 +251,7 @@ one_boot_forest <- function(seed, index, Xboot, minnodesize, minbucket, depth_ma
   }
 
 cat("Start new forest on bootstrap:\n")
+cat("Start", seed, "\n")
 
   ret <- CLogitForest(data = X2,
                     response = response,
@@ -270,7 +272,7 @@ cat("Start new forest on bootstrap:\n")
                     linear.offset = linear.offset,
                     tune.mtry=FALSE,
                     epsilon = epsilon)
-
+  cat("End", seed, "\n")
   return(ret$beta_hat)
 
 }

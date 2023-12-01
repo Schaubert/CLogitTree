@@ -4,7 +4,7 @@
 \alias{bootci.CLogitForest}
 \title{Bootstrap confidence intervals for CLogitForest}
 \usage{
-\method{bootci}{CLogitForest}(model, B = 100, ncores = 1, alpha.ci = 0.05, ...)
+\method{bootci}{CLogitForest}(model, B = 50, ncores = 1, alpha.ci = 0.05, quant.type = 7, ...)
 }
 \arguments{
 \item{model}{Original CLogitForest model}
@@ -14,6 +14,8 @@
 \item{ncores}{Number of parallel cores to use}
 
 \item{alpha.ci}{Confidence level of confidence intervals is calculated as \code{1-alpha.ci}.}
+
+\item{quant.type}{Algorithm type used for quantiles, as described in argument \code{type} from \code{\link{quantile}}.}
 
 \item{...}{Further bootci arguments}
 }

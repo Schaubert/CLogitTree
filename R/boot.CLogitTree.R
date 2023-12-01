@@ -13,6 +13,7 @@ bootci <- function (model, ...) {
 #' @param B Number of bootstrap iterations
 #' @param ncores Number of parallel cores to use
 #' @param alpha.ci Confidence level of confidence intervals is calculated as \code{1-alpha.ci}.
+#' @param quant.type Algorithm type used for quantiles, as described in argument \code{type} from \code{\link{quantile}}.
 #' @param ... Further bootci arguments
 #' @return
 #' \item{beta_hat}{Estimate for separate exposure  effect}
@@ -34,7 +35,7 @@ bootci <- function (model, ...) {
 #' tree.boot
 #' }
 #' @export
-bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, ...){
+bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, quant.type = 7, ...){
 
   Xboot = cbind(model$Z, model$exposure, model$strata, model$y)
   names(Xboot)[(ncol(Xboot)-2):ncol(Xboot)] <- c("Xexpo", "Xstrata","Xy")
@@ -162,7 +163,8 @@ bootci.CLogitTree <- function(model, B = 100, ncores = 2, alpha.ci = 0.05, ...){
   }
 
 
-  return(list(beta_hat = beta_hat, ci_beta = quantile(beta.hat.vec, c(alpha.ci/2, 1-alpha.ci/2))))
+  return(list(beta_hat = beta_hat, ci_beta = quantile(beta.hat.vec, c(alpha.ci/2, 1-alpha.ci/2),
+                                                      type = quant.type)))
 }
 
 

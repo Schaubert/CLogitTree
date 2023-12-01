@@ -31,6 +31,13 @@ predict.CLogitTree <- function(object,
   type <- match.arg(type)
 
 
+ if(is.null(exposure)){
+   if(!is.character(object$exposure)){
+      exposure <- NULL
+   }else{
+     exposure <- object$exposure
+   }
+ }
 
   if(is.null(newdata)){
 
@@ -91,7 +98,8 @@ predict.CLogitTree <- function(object,
   }
 
 
-  if((!is.null(exposure) | !is.null(object$exposure)) & type != "tree"){
+
+  if((!is.null(exposure)) & (type != "tree")){
     beta_hat  <- object$beta_hat
     if(is.null(newdata)){
       expo <- object$exposure
@@ -106,7 +114,6 @@ predict.CLogitTree <- function(object,
     eta <- eta_gamma
   }
 
-# browser()
 
   if(!is.null(offset)){
     if(length(offset)==1){

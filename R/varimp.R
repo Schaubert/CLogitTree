@@ -22,10 +22,18 @@ varimp <- function (model, ...) {
 #' \donttest{
 #' data(illu.small)
 #'
+#' set.seed(1860)
+#' illu.rf <- CLogitForest(illu.small, response = "y", exposure = "x", s = "strata",
+#'                         ntree = 4, depth_max=2, tune.mtry = FALSE)
+#'
+#' illu.rf
+#'
+#' vi <- varimp(illu.rf)
+#' plot(vi)
 #' }
 #' @export
 varimp.CLogitForest <- function(model, n.random = 1, oob = TRUE, ...){
- # browser()
+  # browser()
 ## ncores option was taken out
   ncores <- 1
 
@@ -110,7 +118,7 @@ return(var.imp)
 
 
 varimp.help.oob <- function(x, s, data, response, exposure, linear.offset, off.model){
-# browser()
+ # browser()
 
   ## get strata variable for this particular tree
   sample.strata <- x$sample.strata
@@ -154,6 +162,7 @@ varimp.help.oob <- function(x, s, data, response, exposure, linear.offset, off.m
   ## index of observations which are oob for this tree
   oob.index <- which(!(data[, names(data) == s] %in% sample.strata))
 # browser()
+
 
 
   ## predict linear predictor, only for oob observations

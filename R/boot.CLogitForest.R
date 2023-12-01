@@ -6,6 +6,7 @@
 #' @param B Number of bootstrap iterations
 #' @param ncores Number of parallel cores to use
 #' @param alpha.ci Confidence level of confidence intervals is calculated as \code{1-alpha.ci}.
+#' @param quant.type Algorithm type used for quantiles, as described in argument \code{type} from \code{\link{quantile}}.
 #' @param ... Further bootci arguments
 #' @return
 #' \item{beta_hat}{Estimate for separate exposure  effect}
@@ -26,14 +27,15 @@
 #' rf.boot
 #' }
 #' @export
-bootci.CLogitForest <- function(model, B = 100, ncores = 1, alpha.ci = 0.05, ...){
+bootci.CLogitForest <- function(model, B = 50, ncores = 1, alpha.ci = 0.05, quant.type = 7,
+                                ...){
 
 
   if(is.null(model$exposure)){
     stop("Confidence intervals only make sense for model where an explicit exposure effect is specified!")
   }
 
-# browser()
+
   ntree <- model$ntree
   epsilon <- model$epsilon
   mtry <- model$mtry
@@ -78,7 +80,7 @@ bootci.CLogitForest <- function(model, B = 100, ncores = 1, alpha.ci = 0.05, ...
   }else{
     beta_hat <- model$beta_hat
   }
-
+# browser()
 
   seeds <- abs(round(rnorm(B) * 1e8))
 
@@ -138,7 +140,7 @@ bootci.CLogitForest <- function(model, B = 100, ncores = 1, alpha.ci = 0.05, ...
   }
 
 
-  return(list(beta_hat = beta_hat, ci_beta = quantile(beta.hat.vec, c(alpha.ci/2, 1-alpha.ci/2)),
+  return(list(beta_hat = beta_hat, ci_beta = quantile(beta.hat.vec, c(alpha.ci/2, 1-alpha.ci/2), type = quant.type),
               beta_hat_vector = beta.hat.vec))
 }
 

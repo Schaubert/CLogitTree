@@ -23,6 +23,7 @@
 #' @param tune.mtry Shall \code{mtry} be tuned prior to model fitting? If true, \code{tune.ntree} trees are fitted with all possible
 #' values of \code{mtry}
 #' @param tune.ntree Number of trees to be used for \code{mtry} tuning. Only effective if \code{tune.mtry = TRUE}.
+#' @param tune.range Range of possible values for mtry to be considered mtry-tuning. Only effective if \code{tune.mtry = TRUE}.
 #' @param epsilon Convergence tolerance. Iteration continues until the relative change
 #' in the conditional log likelihood is less than eps. Must be positive.
 #'
@@ -71,10 +72,10 @@ CLogitForest <- function(data,
                        mtry = ifelse(is.null(exposure),max(floor((ncol(data)-2)/3), 1),
                                      max(floor((ncol(data)-3)/3), 1)),
                        subsample.632 = FALSE,
-                       minnodesize = nrow(data)*0.1,
-                       minbucket = nrow(data)*0.05,
+                       minnodesize = 15,
+                       minbucket = 5,
                        depth_max = NULL,
-                       lambda=1e-20,
+                       lambda = 1e-20,
                        print.trace = FALSE,
                        fit = TRUE,
                        ncores = 2,
@@ -82,7 +83,8 @@ CLogitForest <- function(data,
                        linear.offset = FALSE,
                        tune.mtry = TRUE,
                        tune.ntree = 20,
-                       epsilon = 1e-3){
+                       tune.range = 2:floor((ncol(data)-2)*0.7),
+                       epsilon = 1e-5){
 
   ## preliminary definitions
   n    <- nrow(data)
@@ -90,7 +92,7 @@ CLogitForest <- function(data,
 
   seeds <- abs(round(rnorm(ntree) * 1e8))
 
-# browser()
+
 if(linear.offset){
 
   names.Z    <- names(data)[!(names(data)%in%c(response, exposure,s))]
@@ -126,8 +128,10 @@ if(linear.offset){
   if(tune.mtry){
     mtry <- tune_mtry(seeds, subsample.632, data,
                       s, exposure, response, minnodesize, minbucket,
-                      depth_max, lambda, print.trace, fit, BIC, ncores, tune.ntree, linear.off, epsilon)
+                      depth_max, lambda, print.trace, fit, BIC, ncores, tune.ntree, tune.range,
+                      linear.off, epsilon)
   }
+  # browser()
 
   ## one core or several cores
   if(ncores == 1){
@@ -175,11 +179,18 @@ if(linear.offset){
     stopCluster(cl)
   }
 
-  exp.effect <- unlist(lapply(tree_list, function(x){x$tree.b$beta_hat}))
+  if(is.null(exposure)){
+    exp.effect <- NA
+    beta_hat <- NA
+    beta_median_hat <- NA
+  }else{
+    exp.effect <- unlist(lapply(tree_list, function(x){x$tree.b$beta_hat}))
 
 
-  beta_hat <- mean(exp.effect)
-  beta_median_hat <- median(exp.effect)
+    beta_hat <- mean(exp.effect)
+    beta_median_hat <- median(exp.effect)
+  }
+
 
   to_return <- list("beta_hat"=beta_hat,
                     "beta_median_hat" = beta_median_hat,
@@ -225,7 +236,7 @@ clrf.fit <- function(seed, subsample.632, data,
     }
     mtry <- sample(1:n.var,1)
   }
- # browser()
+
   # sample bootstrap sample or subsample
     if(subsample.632){
       sample.strata <- sample(strata, ceiling(0.632*n.strata), replace = FALSE)
@@ -276,9 +287,9 @@ clrf.fit <- function(seed, subsample.632, data,
 
 tune_mtry <- function(seeds, subsample.632, data,
                       s, exposure, response, minnodesize, minbucket,
-                      depth_max, lambda, print.trace, fit, BIC, ncores, tune.ntree, linear.off, epsilon){
+                      depth_max, lambda, print.trace, fit, BIC, ncores, tune.ntree, tune.range,
+                      linear.off, epsilon){
 
-  # browser()
 if(tune.ntree>length(seeds)){
   tune.ntree <- length(seeds)
 }
@@ -306,6 +317,7 @@ seeds <- seeds[1:tune.ntree]
                         fit = fit,
                         BIC = BIC,
                         n.var = n.var,
+                      tune.range = tune.range,
                         linear.off = linear.off,
                       epsilon = epsilon)
   }else{
@@ -316,7 +328,7 @@ seeds <- seeds[1:tune.ntree]
                                   "response", "exposure", "s", "subsample.632",
                                   "minnodesize", "minbucket", "depth_max", "lambda",
                                   "print.trace", "fit","BIC","n.var", "linear.off",
-                                  "epsilon"),
+                                  "epsilon","tune.range"),
                   envir = sys.frame(sys.nframe()))
 
     ll_list <- parSapply(cl, seeds, tune_mtry_single,
@@ -333,14 +345,15 @@ seeds <- seeds[1:tune.ntree]
                            fit = fit,
                            BIC = BIC,
                            n.var = n.var,
+                         tune.range = tune.range,
                            linear.off = linear.off,
                          epsilon = epsilon)
     stopCluster(cl)
   }
-# browser()
+
 ll <- rowSums(ll_list)
 
-mtry.opt <- (1:n.var)[which.max(ll)]
+mtry.opt <- tune.range[which.max(ll)]
 cat("The optimal mtry is ",mtry.opt,"\n")
 mtry.opt
 }
@@ -348,11 +361,12 @@ mtry.opt
 
 tune_mtry_single <- function(seed, subsample.632, data,
                       s, exposure, response, minnodesize, minbucket,
-                      depth_max, lambda, print.trace, fit, BIC, n.var, linear.off, epsilon){
+                      depth_max, lambda, print.trace, fit, BIC, n.var,
+                      tune.range, linear.off, epsilon){
 
 
-   # browser()
-  ll <- rep(0,n.var)
+
+  ll <- rep(0,length(tune.range))
 
   strata <- unique(data[, names(data) == s])
   n.strata <- length(strata)
@@ -365,10 +379,10 @@ tune_mtry_single <- function(seed, subsample.632, data,
   data.test <- data[subset.test,]
 
 
-  for(tt in 1:n.var){
+  for(tt in seq_along(tune.range)){
     fit.tt <- clrf.fit(seed, subsample.632, data.train,
                        s, exposure, response, minnodesize, minbucket,
-                       depth_max, tt, lambda, print.trace, fit, BIC, linear.off.train, epsilon)
+                       depth_max, tune.range[tt], lambda, print.trace, fit, BIC, linear.off.train, epsilon)
 
     ll[tt] <- mean(predict(fit.tt$tree.b, type = "loglik",newdata = data.test,
                            response = response, exposure = exposure, s = s))

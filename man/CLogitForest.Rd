@@ -13,8 +13,8 @@ CLogitForest(
   mtry = ifelse(is.null(exposure), max(floor((ncol(data) - 2)/3), 1),
     max(floor((ncol(data) - 3)/3), 1)),
   subsample.632 = FALSE,
-  minnodesize = nrow(data) * 0.1,
-  minbucket = nrow(data) * 0.05,
+  minnodesize = 15,
+  minbucket = 5,
   depth_max = NULL,
   lambda = 1e-20,
   print.trace = FALSE,
@@ -24,7 +24,8 @@ CLogitForest(
   linear.offset = FALSE,
   tune.mtry = TRUE,
   tune.ntree = 20,
-  epsilon = 0.001
+  tune.range = 2:floor((ncol(data) - 2) * 0.7),
+  epsilon = 1e-05
 )
 }
 \arguments{
@@ -65,6 +66,8 @@ randomly selected for a single tree}
 values of \code{mtry}}
 
 \item{tune.ntree}{Number of trees to be used for \code{mtry} tuning. Only effective if \code{tune.mtry = TRUE}.}
+
+\item{tune.range}{Range of possible values for mtry to be considered mtry-tuning. Only effective if \code{tune.mtry = TRUE}.}
 
 \item{epsilon}{Convergence tolerance. Iteration continues until the relative change
 in the conditional log likelihood is less than eps. Must be positive.}

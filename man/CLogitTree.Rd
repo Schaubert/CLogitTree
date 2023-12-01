@@ -11,7 +11,7 @@ CLogitTree(
   s,
   alpha = 0.05,
   nperm = 500,
-  minnodesize = 10,
+  minnodesize = 15,
   minbucket = 5,
   depth_max = NULL,
   perm_test = TRUE,
@@ -21,7 +21,7 @@ CLogitTree(
   print.trace = FALSE,
   ncores = 1,
   fit = TRUE,
-  epsilon = 0.001
+  epsilon = 1e-05
 )
 }
 \arguments{

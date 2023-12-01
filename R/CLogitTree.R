@@ -76,7 +76,7 @@ CLogitTree <- function(data,
                        s,
                        alpha = 0.05,
                        nperm = 500,
-                       minnodesize = 10,
+                       minnodesize = 15,
                        minbucket = 5,
                        depth_max = NULL,
                        perm_test = TRUE,
@@ -86,7 +86,7 @@ CLogitTree <- function(data,
                        print.trace = FALSE,
                        ncores = 1,
                        fit = TRUE,
-                       epsilon = 1e-3){
+                       epsilon = 1e-5){
 
   y <- data[, names(data) == response]
   Z    <- data[,!names(data)%in%c(response, exposure,s)]
