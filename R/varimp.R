@@ -24,7 +24,7 @@ varimp <- function (model, ...) {
 #'
 #' set.seed(1860)
 #' illu.rf <- CLogitForest(illu.small, response = "y", exposure = "x", s = "strata",
-#'                         ntree = 4, depth_max=2, tune.mtry = FALSE)
+#'                         ntree = 4, depth_max = 2, tune.mtry = FALSE)
 #'
 #' illu.rf
 #'
@@ -53,7 +53,7 @@ varimp.CLogitForest <- function(model, n.random = 1, oob = TRUE, ...){
 
 if(oob){
 # browser()
-  single.trees <- lapply(model$tree_list, varimp.help.oob, s = model$s, data = model$data,
+  single.trees <- lapply(model$tree_list, vi.help.ob, s = model$s, data = model$data,
                        response = model$response, exposure = model$exposure,
                        linear.offset = linear.offset, off.model = off.model)
 
@@ -117,7 +117,7 @@ return(var.imp)
 }
 
 
-varimp.help.oob <- function(x, s, data, response, exposure, linear.offset, off.model){
+vi.help.ob <- function(x, s, data, response, exposure, linear.offset, off.model){
  # browser()
 
   ## get strata variable for this particular tree
@@ -171,11 +171,15 @@ varimp.help.oob <- function(x, s, data, response, exposure, linear.offset, off.m
 
 
   ## split oob predictions according to strata
-  preds.oob <- split(preds.oob, data[oob.index, names(data) == s])
+  split.index <- data[oob.index, names(data) == s]
+  if(is.factor(split.index)){
+    split.index <- droplevels(split.index)
+  }
+  preds.oob <- split(preds.oob, split.index)
 
   ## split responses of oob observations according to strata
   y.oob <- data[oob.index, names(data) == response]
-  y.oob <- split(y.oob, data[oob.index, names(data) == s])
+  y.oob <- split(y.oob, split.index)
 
 
   ## compute vector of conditional likelihoods of oob strata
@@ -227,7 +231,7 @@ singlevar.oob <- function(var.num, model, var.names, single.trees,  n.random,
   data.rnd[, names(data.rnd) == var.names[var.num]] <- sample(data.rnd[, names(data.rnd) == var.names[var.num]])
 
   ## berechne Model fit pro Baum mit permutierter Variable
-  var.num.list <- lapply(model$tree_list, varimp.help.oob, s = model$s, data = data.rnd,
+  var.num.list <- lapply(model$tree_list, vi.help.ob, s = model$s, data = data.rnd,
                       response = model$response, exposure = model$exposure,
                       linear.offset = linear.offset, off.model = off.model)
 

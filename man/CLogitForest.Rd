@@ -106,7 +106,7 @@ data(illu.small)
 
 set.seed(1860)
 illu.rf <- CLogitForest(illu.small, response = "y", exposure = "x", s = "strata",
-                        ntree = 4, depth_max=2, tune.mtry = FALSE)
+                        ntree = 4, depth_max = 2, tune.mtry = FALSE)
 
 illu.rf
 }
