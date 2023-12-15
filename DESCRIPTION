@@ -1,8 +1,8 @@
 Package: CLogitTree
 Type: Package
 Title: Tree-Based Methods for Matched Case-Control Studies
-Version: 0.2-1
-Date: 2023-12-01
+Version: 0.2-2
+Date: 2023-12-15
 Depends: R (>= 3.5.0)
 Imports: generics, Epi, plotrix, parallel, survival, clogitL1, penalized
 Author: Gunther Schauberger and Moritz Berger
