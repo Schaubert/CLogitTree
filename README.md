@@ -28,12 +28,12 @@ illu.tree <- CLogitTree(illu.small, response = "y",
 plot(illu.tree)
 
 # Example #2: Pruning via BIC
- set.seed(1860)
- illu.tree <- CLogitTree(illu.small, response = "y", 
-                         exposure = "x", s = "strata", 
-                         perm_test = FALSE, depth_max=4)
- 
- illu.tree <- pruneBIC(illu.tree)
+set.seed(1860)
+illu.tree <- CLogitTree(illu.small, response = "y", 
+                       exposure = "x", s = "strata", 
+                       perm_test = FALSE, depth_max=4)
+
+illu.tree <- pruneBIC(illu.tree)
 
 plot(illu.tree)
 ```
@@ -44,14 +44,17 @@ plot(illu.tree)
 library(CLogitTree)
 data(illu.small)
 
+# Compute CLogitForest based on 4 trees
 set.seed(1860)
 illu.rf <- CLogitForest(illu.small, response = "y", 
                         exposure = "x", s = "strata", 
                         ntree = 4, depth_max = 2, 
                         tune.mtry = FALSE)
 
+# show estimated exposure effect
 illu.rf
 
+# compute and plot variable importance
 vi <- varimp(illu.rf)
 plot(vi)
 ```
