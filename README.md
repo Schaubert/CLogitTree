@@ -21,14 +21,17 @@ data(illu.small)
 
 # Example #1: Split selection via permutation trees
 set.seed(1860)
-illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata",
-                         alpha = 0.05, nperm = 20)
+illu.tree <- CLogitTree(illu.small, response = "y", 
+                        exposure = "x", s = "strata", 
+                        alpha = 0.05, nperm = 20)
 
 plot(illu.tree)
 
 # Example #2: Pruning via BIC
  set.seed(1860)
- illu.tree <- CLogitTree(illu.small, response = "y", exposure = "x", s = "strata", perm_test = FALSE, depth_max=4)
+ illu.tree <- CLogitTree(illu.small, response = "y", 
+                         exposure = "x", s = "strata", 
+                         perm_test = FALSE, depth_max=4)
  
  illu.tree <- pruneBIC(illu.tree)
 
@@ -42,7 +45,10 @@ library(CLogitTree)
 data(illu.small)
 
 set.seed(1860)
-illu.rf <- CLogitForest(illu.small, response = "y", exposure = "x", s = "strata", ntree = 4, depth_max = 2, tune.mtry = FALSE)
+illu.rf <- CLogitForest(illu.small, response = "y", 
+                        exposure = "x", s = "strata", 
+                        ntree = 4, depth_max = 2, 
+                        tune.mtry = FALSE)
 
 illu.rf
 
