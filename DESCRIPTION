@@ -1,15 +1,15 @@
 Package: CLogitTree
 Type: Package
 Title: Tree-Based Methods for Matched Case-Control Studies
-Version: 0.2-2
-Date: 2023-12-15
+Version: 0.2-3
+Date: 2024-05-16
 Depends: R (>= 3.5.0)
 Imports: generics, Epi, plotrix, parallel, survival, clogitL1, penalized
 Author: Gunther Schauberger and Moritz Berger
 Maintainer: Gunther Schauberger <gunther.schauberger@tum.de>
 Description: Performs CLogitTree and CLogitForest, which represent decision trees and random forests for the analysis of matched case-control studies. They can be used as alternatives to conventional conditional logistic regression. 
 License: GPL (>= 2)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Encoding: UTF-8
 Suggests: 
     testthat (>= 3.0.0)
