@@ -96,6 +96,7 @@ CLogitTree <- function(data,
   for(j in 1:ncol(Z)){
     if(length(unique(Z[,j]))==1){
       exc[j] <- 1
+      warning("Constant variables were excluded")
     }
   }
   Z <- Z[ ,exc==0]
@@ -131,6 +132,11 @@ CLogitTree <- function(data,
         Z[,j] <- as.integer(Z[,j])
       }
     }
+  }
+
+  ## check whether exposure is a factor
+  if(is.factor(data[,exposure]) & nlevels(data[,exposure])>2){
+    stop("Exposure can only be either a binary variable or a numeric variable, but not a multi-level factor")
   }
 
   ordered_values <- lapply(1:nvar, function(j) ord_values(Z[,j]))
@@ -495,7 +501,7 @@ CLogitTree <- function(data,
   if(count>1){
     params_fit <- check_names_list(params_fit, params)
   }
-
+browser()
   ###################################################################################
   mod_opt         <- mod_potential[[count]]
   params_opt      <- params[[count]]
