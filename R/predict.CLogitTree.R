@@ -32,10 +32,10 @@ predict.CLogitTree <- function(object,
 
 
  if(is.null(exposure)){
-   if(!is.character(object$exposure)){
+   if(!is.character(object$exposure.name)){
       exposure <- NULL
    }else{
-     exposure <- object$exposure
+     exposure <- object$exposure.name
    }
  }
 
@@ -98,7 +98,6 @@ predict.CLogitTree <- function(object,
   }
 
 
-
   if((!is.null(exposure)) & (type != "tree")){
     beta_hat  <- object$beta_hat
     if(is.null(newdata)){
@@ -106,10 +105,8 @@ predict.CLogitTree <- function(object,
     } else{
       expo <- newdata[, names(newdata) == exposure]
     }
-    if(is.factor(expo)){
-      expo <- as.numeric(expo)-min(as.numeric(expo))
-    }
-    eta <- eta_gamma + expo*beta_hat
+    expo <- model.matrix(~expo)[,-1,drop=FALSE]
+    eta <- eta_gamma + expo%*%beta_hat
   } else{
     eta <- eta_gamma
   }
@@ -124,7 +121,7 @@ predict.CLogitTree <- function(object,
     if(length(offset)==length(eta)){
       eta <- eta + offset
     }else{
-      stop("Length of offset does not conincide to length of eta!")
+      stop("Length of offset does not coincide with length of eta!")
     }
 
   }
@@ -150,7 +147,7 @@ predict.CLogitTree <- function(object,
 
       mu <- c()
       for(zz in 1:length(y.list)){
-        mu <- c(mu, prod(exp(pred.list[[zz]]))/sum(exp(pred.list[[zz]])))
+        mu <- c(mu, exp(pred.list[[zz]])/sum(exp(pred.list[[zz]])))
       }
       return(mu)
     }else{

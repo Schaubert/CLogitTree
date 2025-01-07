@@ -91,6 +91,17 @@ CLogitTree <- function(data,
   y <- data[, names(data) == response]
   Z    <- data[,!names(data)%in%c(response, exposure,s)]
 
+
+  ### GS 02/12/2024
+  if(!is.null(exposure)){
+    p.exposure <- 1
+    if(is.factor(data[,exposure])){
+      if(nlevels(data[,exposure])>2){
+        p.exposure <- nlevels(data[,exposure])-1
+      }
+    }
+
+}
   # exclude variables from Z with only one value
   exc <- numeric(ncol(Z))
   for(j in 1:ncol(Z)){
@@ -134,10 +145,10 @@ CLogitTree <- function(data,
     }
   }
 
-  ## check whether exposure is a factor
-  if(is.factor(data[,exposure]) & nlevels(data[,exposure])>2){
-    stop("Exposure can only be either a binary variable or a numeric variable, but not a multi-level factor")
-  }
+  # ## check whether exposure is a factor
+  # if(is.factor(data[,exposure]) & nlevels(data[,exposure])>2){
+  #   stop("Exposure can only be either a binary variable or a numeric variable, but not a multi-level factor")
+  # }
 
   ordered_values <- lapply(1:nvar, function(j) ord_values(Z[,j]))
   n_levels       <- sapply(ordered_values,length)
@@ -182,7 +193,8 @@ CLogitTree <- function(data,
     mod0   <- clogistic(form0, strata = dat0[,s], data = dat0, eps = epsilon, toler.chol = epsilon/10)
     BICs[1] <- (-2)*mod0$loglik[2]+log(n)*length(coef(mod0))
     mm <- model.matrix(mod0, data=dat0)
-    invisible(capture.output(mod_potential[[1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,2, drop=FALSE], unpenalized=NULL,
+    ### GS 02/12/2024: 2:(p.exposure+1) statt 2
+    invisible(capture.output(mod_potential[[1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,2:(p.exposure+1), drop=FALSE], unpenalized=NULL,
                                                                    offset=offset_vec, lambda=0, alpha=10e-20, epsilon = epsilon)))
     params_fit[[1]] <- names(coefficients(mod0))
   } else{
@@ -372,7 +384,8 @@ CLogitTree <- function(data,
           # fit final model with penalizedclr
           mm <- model.matrix(mod0, data=dat0)
           if(!is.null(exposure)){
-            invisible(capture.output(mod_potential[[count+1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,-c(1,2,ncol(mm))], unpenalized=mm[,2],
+            ### GS 02/12/2024: 2:(p.exposure+1) statt 2
+              invisible(capture.output(mod_potential[[count+1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,-c(1:(p.exposure+1),ncol(mm))], unpenalized=mm[,2:(p.exposure+1)],
                                                                                  offset=offset_vec, lambda=lambda, alpha=10e-20, epsilon = epsilon)))
           } else{
           #  invisible(capture.output(mod_potential[[count+1]] <- penalized.clr(response=dat0$y, stratum=dat0[,s], penalized=mm[,-c(1,2,ncol(mm))], unpenalized=NULL,
@@ -501,12 +514,12 @@ CLogitTree <- function(data,
   if(count>1){
     params_fit <- check_names_list(params_fit, params)
   }
-browser()
+# browser()
   ###################################################################################
   mod_opt         <- mod_potential[[count]]
   params_opt      <- params[[count]]
   params_opt_fit  <- params_fit[[count]]
-
+# browser()
   if(count==1){
     if(!is.null(exposure)){
       beta_hat <- unlist(mod_opt$penalized)
@@ -520,8 +533,8 @@ browser()
     if(!is.null(exposure)){
       gamma_hat <- c(unlist(mod_opt$penalized),0)
       beta_hat  <- unlist(mod_opt$unpenalized)
-      names(gamma_hat) <- params_opt_fit[-1]
-      names(beta_hat)  <- params_opt_fit[1]
+      names(gamma_hat) <- params_opt_fit[-(1:p.exposure)]
+      names(beta_hat)  <- params_opt_fit[1:p.exposure]
     } else{
       gamma_hat <- c(unlist(mod_opt$penalized),0)
       beta_hat  <- NULL
@@ -572,7 +585,9 @@ browser()
                        "ncores" = ncores,
                        "call"=match.call(),
                        "prunedBIC" = FALSE,
-                       "epsilon" = epsilon)
+                       "epsilon" = epsilon,
+                       "strata.name" = s,
+                       "exposure.name" = exposure)
   }else{
     to_return <- list("beta_hat"=beta_hat,
                       "gamma_hat"=gamma_hat,
@@ -594,7 +609,9 @@ browser()
                       "ncores" = ncores,
                       "call"= match.call(),
                       "prunedBIC" = FALSE,
-                      "epsilon" = epsilon)
+                      "epsilon" = epsilon,
+                      "strata.name" = s,
+                      "exposure.name" = exposure)
   }
 
   class(to_return) <- "CLogitTree"

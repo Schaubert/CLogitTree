@@ -2,14 +2,18 @@
 print.CLogitTree <- function(x, ...){
 
   n.terminal <- length(x$gamma_hat)
-
+  
 
   cat("Conditional Logistic Regression tree with", n.terminal, "terminal nodes \n \n")
 
+  ### 04.12.2024 JW: Changed the presentation of beta_hat values, added a loop in the else
   if(is.null(x$beta_hat)){
     cat("No separate exposure effect was estimated!","\n","\n")
-  }else{
-    cat("Exposure effect estimate:", x$beta_hat ,"\n","\n")
+  } else{
+    cat("Exposure effect estimate:\n")
+    for (i in seq_along(x$beta_hat)) {
+      cat(paste0(names(x$beta_hat)[i], ": "), x$beta_hat[i], "\n", "\n")
+    }
   }
 
 

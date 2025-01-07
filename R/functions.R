@@ -17,9 +17,14 @@ lu <- function(last=last, cd=cd, d=d, erg){
 # modify factors
 mod_factors <- function(y, x){
   tab <- table(x,y)
-  tab <- tab[rowSums(tab)>0,]
+  # tab <- tab[rowSums(tab)>0,] # not needed, replaced by my change downstream
   nx  <- rowSums(tab)
   ptab <- tab/nx
+  ### JW 06.12.2024 - Replace NAs with colMean to preserve the factor level
+  ### the result of this measure is that "x-pp" = 0, as the cells do not differ
+  ### from the column average, it ends up as "sa" = 0, so no effect, which is
+  ### correct as there are no observations
+  ptab[is.na(ptab)] <- colMeans(ptab, na.rm = T)
   pp  <- colMeans(ptab, na.rm=T)
   ptabc <- t(apply(ptab,1, function(x) x-pp))
   sig   <- matrix(0, nrow=ncol(tab), ncol=ncol(tab))

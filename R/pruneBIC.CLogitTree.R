@@ -28,7 +28,10 @@ pruneBIC <- function (tree, ...) {
 #'
 #' @export
 pruneBIC.CLogitTree <- function(tree, ...){
-
+  
+  ### JW 03/12/2024
+  p.exposure <- length(tree$beta_hat)
+  
   iter <- which.min(tree$BIC)
 
   model      <- tree$model[[iter]]
@@ -55,8 +58,8 @@ pruneBIC.CLogitTree <- function(tree, ...){
     if(length(tree$exposure)>0){
       gamma_hat <- c(unlist(model$penalized),0)
       beta_hat  <- unlist(model$unpenalized)
-      names(gamma_hat) <- params_fit[-1]
-      names(beta_hat)  <- params_fit[1]
+      names(gamma_hat) <- params_fit[-c(1:p.exposure)]
+      names(beta_hat)  <- params_fit[c(1:p.exposure)]
     } else{
       gamma_hat <- c(unlist(model$penalized),0)
       beta_hat  <- NULL

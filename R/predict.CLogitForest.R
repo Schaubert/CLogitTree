@@ -110,10 +110,14 @@ predict.CLogitForest <- function(object,
 
     if(type != "forest"){
       if(!is.null(exposure)){
+        ### JW 05.12.2025 added model matrix and matrix multiplication to handle
+        ### factor exposures with multiple coefficents
+        formula0 <- as.formula(paste(response, "~", exposure))
+        m0 <- model.matrix(formula0, data = newdata)[,-1]
       if(median.exposure){
-        pred <- pred + object$beta_median_hat * newdata[,exposure]
+        pred <- pred + m0 %*% matrix(object$beta_median_hat, ncol = 1)
       }else{
-        pred <- pred + object$beta_hat * newdata[,exposure]
+        pred <- pred + m0 %*% matrix(object$beta_hat, ncol=1)
       }
       }
     }
